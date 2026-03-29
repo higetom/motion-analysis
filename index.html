@@ -240,8 +240,8 @@ const NORMATIVE = {
   "軸足膝屈曲": {pro:[40,65], amateur:[25,80], unit:"°", better:"range"},
   "体幹傾き": {pro:[25,40], amateur:[15,55], unit:"°", better:"range"},
   "ストライド長": {pro:[180,260], amateur:[120,320], unit:"%", better:"range"},
-  "並進運動速度": {pro:[8,15], amateur:[4,20], unit:"体幹長/s", better:"higher"},
-  "腕振り速度": {pro:[40,70], amateur:[20,90], unit:"体幹長/s", better:"higher"},
+  "並進運動速度": {pro:[13,24], amateur:[6,32], unit:"km/h", better:"higher"},
+  "腕振り速度": {pro:[65,113], amateur:[32,146], unit:"km/h", better:"higher"},
   "腕振り効率": {pro:[4.0,7.0], amateur:[2.5,10.0], unit:"倍", better:"range"},
 };
 
@@ -529,7 +529,7 @@ function calcTranslationSpeed(frames, arm, fps=30) {
   const comXs = smooth(comX);
   const velX = gradient(comXs).map(v=>v*fps);
   const velNorm = velX.map(v=>Math.abs(v)/trunkAvg);
-  return +Math.max(...velNorm).toFixed(1);
+  return +(Math.max(...velNorm) * 0.45 * 3.6).toFixed(1);
 }
 
 function calcArmSpeed(frames, arm, fps=30) {
@@ -543,7 +543,7 @@ function calcArmSpeed(frames, arm, fps=30) {
   const vx = gradient(wX).map(v=>v*fps);
   const vy = gradient(wY).map(v=>v*fps);
   const spd = vx.map((v,i)=>Math.sqrt(v**2+vy[i]**2)/trunkAvg);
-  return +Math.max(...spd).toFixed(1);
+  return +(Math.max(...spd) * 0.45 * 3.6).toFixed(1);
 }
 
 function calcArmEfficiency(frames, arm, fps=30) {
@@ -590,7 +590,7 @@ function computeScore() {
     if(!f) continue;
     const val = dataType==='angles' ? (f.angles[name]||0) : (f.extra[name]||0);
     const score = Math.max(0,Math.min(100,scoreByNormative(name,val)));
-    components[name] = {score:+score.toFixed(1), raw:+val.toFixed(1), unit:NORMATIVE[name]?.unit||""};
+    components[name] = {score:+score.toFixed(1), raw:+val.toFixed(1), unit:NORMATIVE[name]?.unit||"", phase:phaseName};
   }
 
   // Motion metrics (whole sequence)
@@ -602,7 +602,7 @@ function computeScore() {
   };
   for(const [name, raw] of Object.entries(motionMetrics)){
     const score = Math.max(0,Math.min(100,scoreByNormative(name,raw)));
-    components[name] = {score:+score.toFixed(1), raw:+raw.toFixed(1), unit:NORMATIVE[name]?.unit||""};
+    components[name] = {score:+score.toFixed(1), raw:+raw.toFixed(1), unit:NORMATIVE[name]?.unit||"", phase:"全体"};
   }
 
   // Total
@@ -626,37 +626,37 @@ function generateFeedback(scoreResult) {
 
   // Stride
   const stride = c["ストライド長"]?.raw || 0;
-  if(stride<120) fb.push({severity:'warning',title:'ストライド長が短い',detail:`ストライド長が${stride}%とアマチュア下限以下。下肢エネルギー伝達が不足し、肩への代償負荷が増加します。`,evidence:'Werner et al. (2008)',mechanism:'短いストライド → エネルギー伝達短縮 → 肩負荷増加',exercises:['股関節可動性_mobility','下肢パワー_strength']});
-  else if(stride<180) fb.push({severity:'info',title:'ストライド長に伸びしろあり',detail:`ストライド長が${stride}%。プロ水準（180-260%）未満。股関節可動性と下肢パワーの改善で投球効率が向上します。`,evidence:'Werner et al. (2008)',exercises:['股関節可動性_mobility','下肢パワー_strength','下肢パワー伝達_neuromuscular']});
-  else if(stride>320) fb.push({severity:'warning',title:'ストライド長が長すぎる',detail:`ストライド長が${stride}%と過度。着地不安定性と体幹制御困難に。`,evidence:'Werner et al. (2008)',exercises:['着地安定性_neuromuscular','体幹制御_stability']});
+  if(stride<120) fb.push({severity:'warning',title:'ストライド長が短い',detail:`②前期コッキングフェーズでのストライド長が体幹比${stride}%と短い（プロ水準: 180-260%）。ストライドが短いと下半身からのエネルギー伝達距離が不足し、その分を肩・肘で補おうとするため故障リスクが上がります。股関節の可動性と下肢の推進力を高めましょう。`,evidence:'Werner et al. (2008)',mechanism:'短いストライド → エネルギー伝達距離短縮 → 肩への代償負荷増加',exercises:['股関節可動性_mobility','下肢パワー_strength']});
+  else if(stride<180) fb.push({severity:'info',title:'ストライド長に伸びしろあり',detail:`②前期コッキングフェーズでのストライド長が体幹比${stride}%（プロ水準: 180-260%）。もう少し大きなストライドが取れると、地面反力をより効率的にボールに伝えられます。股関節の柔軟性と脚力アップが鍵です。`,evidence:'Werner et al. (2008)',exercises:['股関節可動性_mobility','下肢パワー_strength','下肢パワー伝達_neuromuscular']});
+  else if(stride>320) fb.push({severity:'warning',title:'ストライド長が長すぎる',detail:`②前期コッキングフェーズでのストライド長が体幹比${stride}%と過大。着地が不安定になり体幹の制御が難しくなります。`,evidence:'Werner et al. (2008)',exercises:['着地安定性_neuromuscular','体幹制御_stability']});
 
   // Lead knee
   const lk = c["踏み出し膝屈曲"]?.raw || 0;
-  if(lk<15) fb.push({severity:'warning',title:'踏み出し膝が伸び過ぎ',detail:`踏み出し膝の屈曲が${lk}°と著しく不足。着地衝撃が直接腰椎・肩に伝達されます。`,evidence:'Werner et al. (2002)',exercises:['膝屈曲力_strength','着地制動_neuromuscular']});
-  else if(lk<30) fb.push({severity:'info',title:'踏み出し膝屈曲に伸びしろあり',detail:`踏み出し膝の屈曲が${lk}°。プロ水準（30-50°）未満で衝撃吸収に改善余地あり。`,evidence:'Werner et al. (2002)',exercises:['膝屈曲力_strength','着地安定性_neuromuscular']});
-  else if(lk>65) fb.push({severity:'info',title:'踏み出し膝屈曲が過度',detail:`踏み出し膝の屈曲が${lk}°と大きすぎ。制動力不足の可能性。`,evidence:'Werner et al. (2002)',exercises:['着地安定性_neuromuscular','下肢パワー伝達_neuromuscular']});
+  if(lk<15) fb.push({severity:'warning',title:'踏み出し膝が伸び過ぎ',detail:`④アクセラレーションフェーズでの踏み出し膝屈曲が${lk}°と小さすぎます（プロ水準: 30-50°）。膝が伸びきった状態で着地すると衝撃が直接腰と肩に伝わり、故障リスクが大きく上がります。着地時に膝をしっかり曲げるドリルを行いましょう。`,evidence:'Werner et al. (2002)',exercises:['膝屈曲力_strength','着地制動_neuromuscular']});
+  else if(lk<30) fb.push({severity:'info',title:'踏み出し膝屈曲に伸びしろあり',detail:`④アクセラレーションフェーズでの踏み出し膝屈曲が${lk}°（プロ水準: 30-50°）。もう少し膝を曲げて着地することで衝撃吸収力が上がり、球速アップにもつながります。`,evidence:'Werner et al. (2002)',exercises:['膝屈曲力_strength','着地安定性_neuromuscular']});
+  else if(lk>65) fb.push({severity:'info',title:'踏み出し膝屈曲が過度',detail:`④アクセラレーションフェーズでの踏み出し膝屈曲が${lk}°と過度。膝の曲がりすぎは制動力の不足を意味し、エネルギーが逃げています。`,evidence:'Werner et al. (2002)',exercises:['着地安定性_neuromuscular','下肢パワー伝達_neuromuscular']});
 
   // Rear knee
   const rk = c["軸足膝屈曲"]?.raw || 0;
-  if(rk<25) fb.push({severity:'warning',title:'軸足膝が伸び過ぎ',detail:`軸足膝屈曲が${rk}°と著しく不足。腕依存の投球に。`,evidence:'Fleisig et al. (1995)',exercises:['軸足膝屈曲_strength','下肢パワー伝達_neuromuscular']});
-  else if(rk<40) fb.push({severity:'info',title:'軸足膝屈曲に伸びしろあり',detail:`軸足膝屈曲が${rk}°。プロ水準（40-65°）未満。`,evidence:'Fleisig et al. (1995)',exercises:['軸足膝屈曲_strength','下肢パワー_strength']});
-  else if(rk>80) fb.push({severity:'info',title:'軸足膝屈曲が過度',detail:`軸足膝屈曲が${rk}°と大きすぎ。安定性低下の可能性。`,evidence:'Fleisig et al. (1995)',exercises:['着地安定性_neuromuscular','バランス訓練_neuromuscular']});
+  if(rk<25) fb.push({severity:'warning',title:'軸足膝が伸び過ぎ',detail:`②前期コッキングフェーズでの軸足膝屈曲が${rk}°と小さすぎます（プロ水準: 40-65°）。軸足が伸びきっていると下半身のパワーを使えず、腕に頼った投球になります。`,evidence:'Fleisig et al. (1995)',exercises:['軸足膝屈曲_strength','下肢パワー伝達_neuromuscular']});
+  else if(rk<40) fb.push({severity:'info',title:'軸足膝屈曲に伸びしろあり',detail:`②前期コッキングフェーズでの軸足膝屈曲が${rk}°（プロ水準: 40-65°）。軸足をもう少し曲げて「タメ」を作ることで、より大きなパワーを生み出せます。`,evidence:'Fleisig et al. (1995)',exercises:['軸足膝屈曲_strength','下肢パワー_strength']});
+  else if(rk>80) fb.push({severity:'info',title:'軸足膝屈曲が過度',detail:`②前期コッキングフェーズでの軸足膝屈曲が${rk}°と過度。曲げすぎると安定性が下がります。`,evidence:'Fleisig et al. (1995)',exercises:['着地安定性_neuromuscular','バランス訓練_neuromuscular']});
 
   // Trunk tilt
   const tt = c["体幹傾き"]?.raw || 0;
-  if(tt<15) fb.push({severity:'info',title:'体幹傾きが小さい',detail:`体幹傾きが${tt}°。地面反力の活用が限定的です。`,evidence:'Stodden et al. (2001)',exercises:['体幹伸展_mobility','地面反力活用_neuromuscular']});
-  else if(tt<25) fb.push({severity:'info',title:'体幹傾きにやや伸びしろあり',detail:`体幹傾きが${tt}°。プロ水準（25-40°）未満。`,evidence:'Stodden et al. (2001)',exercises:['体幹伸展_mobility','コアトレーニング_strength']});
-  else if(tt>55) fb.push({severity:'warning',title:'体幹傾きが過度',detail:`体幹傾きが${tt}°と過度。腰椎負荷が増加。`,evidence:'Stodden et al. (2001)',exercises:['体幹安定化_stability','バランス訓練_neuromuscular']});
+  if(tt<15) fb.push({severity:'info',title:'体幹傾きが小さい',detail:`④アクセラレーションフェーズでの体幹傾きが${tt}°と小さい（プロ水準: 25-40°）。体幹の前傾が足りないと地面反力を活かしきれません。`,evidence:'Stodden et al. (2001)',exercises:['体幹伸展_mobility','地面反力活用_neuromuscular']});
+  else if(tt<25) fb.push({severity:'info',title:'体幹傾きにやや伸びしろあり',detail:`④アクセラレーションフェーズでの体幹傾きが${tt}°（プロ水準: 25-40°）。もう少し前傾を深くすることでリリースポイントが前に出て、球速と制球が向上します。`,evidence:'Stodden et al. (2001)',exercises:['体幹伸展_mobility','コアトレーニング_strength']});
+  else if(tt>55) fb.push({severity:'warning',title:'体幹傾きが過度',detail:`④アクセラレーションフェーズでの体幹傾きが${tt}°と過度。前傾しすぎは腰椎への負荷が増加します。`,evidence:'Stodden et al. (2001)',exercises:['体幹安定化_stability','バランス訓練_neuromuscular']});
 
   // Translation speed
   const ts = c["並進運動速度"]?.raw || 0;
-  if(ts<4) fb.push({severity:'warning',title:'並進運動速度が低い',detail:`並進運動速度が${ts}体幹長/sと低水準。下肢推進力不足で腕依存の投球に。`,evidence:'Stodden et al. (2001)',exercises:['下肢パワー_strength','地面反力活用_neuromuscular']});
-  else if(ts<8) fb.push({severity:'info',title:'並進運動速度に伸びしろあり',detail:`並進運動速度が${ts}体幹長/s。プロ水準（8-15）未満。下肢パワー改善で球速向上が見込めます。`,evidence:'Stodden et al. (2001)',exercises:['下肢パワー_strength','下肢パワー伝達_neuromuscular','股関節可動性_mobility']});
+  if(ts<6) fb.push({severity:'warning',title:'並進運動速度が低い',detail:`並進運動の最高速度が${ts}km/hと低水準（プロ水準: 13-24km/h）。体重移動が遅く、腕の振りだけでボールを投げている状態です。下半身の推進力を高めましょう。`,evidence:'Stodden et al. (2001)',exercises:['下肢パワー_strength','地面反力活用_neuromuscular']});
+  else if(ts<13) fb.push({severity:'info',title:'並進運動速度に伸びしろあり',detail:`並進運動の最高速度が${ts}km/h（プロ水準: 13-24km/h）。体重移動をもっと速くすることで、そのエネルギーが腕→ボールに伝わり球速アップにつながります。`,evidence:'Stodden et al. (2001)',exercises:['下肢パワー_strength','下肢パワー伝達_neuromuscular','股関節可動性_mobility']});
 
   // Arm speed
   const as = c["腕振り速度"]?.raw || 0;
-  if(as<20) fb.push({severity:'warning',title:'腕振り速度が低い',detail:`腕振り速度が${as}体幹長/sと低水準。ボール速度に直接影響。`,evidence:'Fleisig et al. (1999)',exercises:['肩甲骨制御_neuromuscular','コッキング位置_neuromuscular']});
-  else if(as<40) fb.push({severity:'info',title:'腕振り速度に伸びしろあり',detail:`腕振り速度が${as}体幹長/s。プロ水準（40-70）未満。`,evidence:'Fleisig et al. (1999)',exercises:['骨盤分離_neuromuscular','体幹回転力_strength','肩甲骨制御_neuromuscular']});
+  if(as<32) fb.push({severity:'warning',title:'腕振り速度が低い',detail:`腕振りの最高速度が${as}km/hと低水準（プロ水準: 65-113km/h）。ボールスピードに直結する指標です。`,evidence:'Fleisig et al. (1999)',exercises:['肩甲骨制御_neuromuscular','コッキング位置_neuromuscular']});
+  else if(as<65) fb.push({severity:'info',title:'腕振り速度に伸びしろあり',detail:`腕振りの最高速度が${as}km/h（プロ水準: 65-113km/h）。体幹の回旋力と肩甲骨の動的安定性を高めることで改善できます。`,evidence:'Fleisig et al. (1999)',exercises:['骨盤分離_neuromuscular','体幹回転力_strength','肩甲骨制御_neuromuscular']});
 
   // Arm efficiency
   const ae = c["腕振り効率"]?.raw || 0;
@@ -711,7 +711,7 @@ function renderResults(scoreResult) {
     const color = data.score>=85?'var(--green)':data.score>=50?'var(--accent)':'var(--red)';
     mg.innerHTML += `
       <div class="metric-card">
-        <div class="metric-name">${name}</div>
+        <div class="metric-name">${name} <span style="font-size:9px;color:var(--accent)">${data.phase||''}</span></div>
         <div class="metric-value" style="color:${color}">${data.raw}<span class="metric-unit">${data.unit}</span></div>
         <div class="metric-bar"><div class="metric-fill" style="width:${Math.min(data.score,100)}%;background:${color}"></div></div>
         <div class="metric-score">${data.score.toFixed(1)}/100</div>
@@ -1034,9 +1034,22 @@ async function processVideo() {
 
       // ランドマーク描画
       try {
+        // フレームの平均輝度を計算して色を決定
+        const sampleData = drawCtx.getImageData(0, 0, drawCanvas.width, drawCanvas.height).data;
+        let totalBright = 0;
+        const step = Math.max(1, Math.floor(sampleData.length / (4 * 500))); // 500ピクセルサンプル
+        let cnt = 0;
+        for(let p = 0; p < sampleData.length; p += step * 4) {
+          totalBright += (sampleData[p] + sampleData[p+1] + sampleData[p+2]) / 3;
+          cnt++;
+        }
+        const avgBright = totalBright / (cnt || 1);
+        const pointColor = avgBright > 128 ? '#FF0066' : '#00FF88'; // 明背景→マゼンタ, 暗背景→緑
+        const lineColor = avgBright > 128 ? '#3300FF' : '#FFAA00'; // 明背景→青, 暗背景→オレンジ
+
         const du = new DrawingUtils(drawCtx);
-        du.drawLandmarks(lm, {radius: 2, color: '#00e6e6'});
-        du.drawConnectors(lm, PoseLandmarker.POSE_CONNECTIONS, {color: '#ff8c00', lineWidth: 1});
+        du.drawLandmarks(lm, {radius: 3, color: pointColor, fillColor: pointColor});
+        du.drawConnectors(lm, PoseLandmarker.POSE_CONNECTIONS, {color: lineColor, lineWidth: 2});
       } catch(e) {}
 
       const imgData = drawCanvas.toDataURL('image/jpeg', 0.5);
