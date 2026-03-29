@@ -859,6 +859,23 @@ async function initMediaPipe() {
 let pendingFile = null;
 let pendingURL = null;
 
+// 動画のシーク完了を待つヘルパー（複数のイベントで確実にキャッチ）
+function waitSeek(video, time) {
+  return new Promise(resolve => {
+    let done = false;
+    const finish = () => { if(!done){ done = true; resolve(); } };
+    // タイムアウト（最大1秒）
+    const t = setTimeout(finish, 1000);
+    // seeked イベント
+    video.addEventListener('seeked', () => { clearTimeout(t); finish(); }, {once: true});
+    // 既に同じ時間なら即解決
+    if(Math.abs(video.currentTime - time) < 0.01 && video.readyState >= 2) {
+      clearTimeout(t); finish(); return;
+    }
+    video.currentTime = time;
+  });
+}
+
 async function processVideo() {
   if(!pendingURL || !selectedArm) {
     console.error('processVideo: missing pendingURL or selectedArm', {pendingURL:!!pendingURL, selectedArm});
@@ -881,14 +898,25 @@ async function processVideo() {
 
     // --- メタデータ待ち ---
     if(videoEl.readyState < 1) {
-      progLabel.textContent = '動画メタデータ読み込み中...';
+      progLabel.textContent = '動画を読み込み中...';
       await new Promise((resolve) => {
         const t = setTimeout(resolve, 10000);
         videoEl.addEventListener('loadedmetadata', ()=>{ clearTimeout(t); resolve(); }, {once:true});
-        // 念のため load() を呼ぶ
         videoEl.load();
       });
     }
+
+    // play→pause でデコーダをアクティブにする（モバイル対策）
+    try {
+      videoEl.muted = true;
+      videoEl.playsInline = true;
+      const p = videoEl.play();
+      if(p) await p;
+      videoEl.pause();
+    } catch(e) {
+      console.log('play/pause init:', e.message);
+    }
+    await new Promise(r => setTimeout(r, 200));
 
     const duration = videoEl.duration;
     if(!duration || !isFinite(duration) || duration <= 0) {
@@ -902,97 +930,66 @@ async function processVideo() {
     drawCanvas.width  = Math.round(vw * scale);
     drawCanvas.height = Math.round(vh * scale);
 
-    progLabel.textContent = '再生準備中...';
+    progLabel.textContent = '解析中...';
     progFill.style.width = '5%';
 
-    // --- 再生ベースでフレーム取得（seekを使わない） ---
-    // モバイルSafariではseekが信頼できないため、実際に再生してキャプチャする
-    videoEl.muted = true;
-    videoEl.playsInline = true;
-    videoEl.currentTime = 0;
-    videoEl.playbackRate = 1.0; // 通常速度
-
+    // --- Seekベースのフレーム取得 ---
+    const fps = 10; // 10fpsサンプリング
+    const totalFrames = Math.floor(duration * fps);
     allFrames = [];
     let tsCounter = 0;
-    let lastCaptureTime = -1;
-    const captureInterval = 1.0 / 10; // 10fps でキャプチャ（モバイル負荷軽減）
 
-    progLabel.textContent = '解析中...（動画を再生しています）';
-    progFill.style.width = '10%';
+    for(let i = 0; i < totalFrames; i++) {
+      const targetTime = i / fps;
+      if(targetTime > duration) break;
 
-    // play() はユーザージェスチャー内で呼ぶ
-    await videoEl.play();
+      // シーク＆待ち
+      await waitSeek(videoEl, targetTime);
 
-    // 再生しながらフレームをキャプチャ
-    await new Promise((resolve, reject) => {
-      let animId;
-      const onFrame = () => {
-        try {
-          const ct = videoEl.currentTime;
+      // canvas に描画
+      try {
+        drawCtx.drawImage(videoEl, 0, 0, drawCanvas.width, drawCanvas.height);
+      } catch(e) {
+        console.warn('drawImage failed at', targetTime);
+        continue;
+      }
 
-          // 終了チェック
-          if(videoEl.ended || videoEl.paused || ct >= duration - 0.05) {
-            cancelAnimationFrame(animId);
-            resolve();
-            return;
-          }
+      // MediaPipe 推定
+      tsCounter += 100;
+      let result;
+      try {
+        result = poseLandmarker.detectForVideo(drawCanvas, tsCounter);
+      } catch(e) {
+        continue;
+      }
 
-          // captureInterval 間隔でキャプチャ
-          if(ct - lastCaptureTime >= captureInterval) {
-            lastCaptureTime = ct;
+      if(!result || !result.landmarks || result.landmarks.length === 0) continue;
 
-            // canvas に描画
-            drawCtx.drawImage(videoEl, 0, 0, drawCanvas.width, drawCanvas.height);
+      const lm = result.landmarks[0];
+      const wlm = result.worldLandmarks?.[0] || lm;
 
-            // MediaPipe 推定
-            tsCounter += 100;
-            let result;
-            try {
-              result = poseLandmarker.detectForVideo(drawCanvas, tsCounter);
-            } catch(e) {
-              // skip
-            }
+      // ランドマーク描画
+      try {
+        const du = new DrawingUtils(drawCtx);
+        du.drawLandmarks(lm, {radius: 2, color: '#00e6e6'});
+        du.drawConnectors(lm, PoseLandmarker.POSE_CONNECTIONS, {color: '#ff8c00', lineWidth: 1});
+      } catch(e) {}
 
-            if(result && result.landmarks && result.landmarks.length > 0) {
-              const lm = result.landmarks[0];
-              const wlm = result.worldLandmarks?.[0] || lm;
+      const imgData = drawCanvas.toDataURL('image/jpeg', 0.5);
+      const angles = calcAngles(lm, selectedArm);
+      const extra = calcExtraMetrics(lm, selectedArm);
 
-              try {
-                const du = new DrawingUtils(drawCtx);
-                du.drawLandmarks(lm, {radius: 2, color: '#00e6e6'});
-                du.drawConnectors(lm, PoseLandmarker.POSE_CONNECTIONS, {color: '#ff8c00', lineWidth: 1});
-              } catch(e) {}
+      allFrames.push({time: targetTime, landmarks: lm, worldLandmarks: wlm, angles, extra, imgData});
 
-              const imgData = drawCanvas.toDataURL('image/jpeg', 0.4);
-              const angles = calcAngles(lm, selectedArm);
-              const extra = calcExtraMetrics(lm, selectedArm);
+      // UI 更新
+      const pct = Math.min(95, Math.round(5 + (i / totalFrames) * 90));
+      progFill.style.width = pct + '%';
+      progLabel.textContent = `解析中... ${pct}%`;
+      progDetail.textContent = `${allFrames.length} フレーム検出 / ${targetTime.toFixed(1)}s`;
 
-              allFrames.push({time: ct, landmarks: lm, worldLandmarks: wlm, angles, extra, imgData});
-            }
-
-            // UI 更新
-            const pct = Math.min(95, Math.round(10 + (ct / duration) * 85));
-            progFill.style.width = pct + '%';
-            progLabel.textContent = `解析中... ${pct}%`;
-            progDetail.textContent = `${allFrames.length} フレーム検出 / ${ct.toFixed(1)}s`;
-          }
-
-          animId = requestAnimationFrame(onFrame);
-        } catch(err) {
-          cancelAnimationFrame(animId);
-          reject(err);
-        }
-      };
-      animId = requestAnimationFrame(onFrame);
-
-      // 安全タイマー：動画時間の3倍以上かかったら強制終了
-      setTimeout(() => {
-        cancelAnimationFrame(animId);
-        resolve();
-      }, Math.max(duration * 3000, 30000));
-    });
-
-    videoEl.pause();
+      // UIに時間を譲る
+      if(i % 3 === 0) await new Promise(r => setTimeout(r, 0));
+    }
 
     if(allFrames.length < 5) {
       progLabel.textContent = `❌ 姿勢を十分に検出できませんでした（${allFrames.length}フレーム）。\n全身が映る明るい場所の動画をお試しください。`;
