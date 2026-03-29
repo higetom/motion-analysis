@@ -170,11 +170,11 @@ input[type="file"]{display:none}
     <div class="frame-editor" id="frameEditor">
       <canvas id="editorCanvas" width="480" height="270"></canvas>
       <div class="frame-nav">
-        <button onclick="stepFrame(-10)">◀◀</button>
-        <button onclick="stepFrame(-1)">◀</button>
+        <button class="step-btn" data-delta="-10">◀◀</button>
+        <button class="step-btn" data-delta="-1">◀</button>
         <span class="frame-info" id="frameInfo">- / -</span>
-        <button onclick="stepFrame(1)">▶</button>
-        <button onclick="stepFrame(10)">▶▶</button>
+        <button class="step-btn" data-delta="1">▶</button>
+        <button class="step-btn" data-delta="10">▶▶</button>
       </div>
     </div>
 
@@ -789,8 +789,37 @@ window.stepFrame = function(delta) {
 // Arrow key support
 document.addEventListener('keydown', (e)=>{
   if(activePhaseIdx===null) return;
-  if(e.key==='ArrowLeft') { stepFrame(-1); e.preventDefault(); }
-  else if(e.key==='ArrowRight') { stepFrame(1); e.preventDefault(); }
+  if(e.key==='ArrowLeft') { window.stepFrame(-1); e.preventDefault(); }
+  else if(e.key==='ArrowRight') { window.stepFrame(1); e.preventDefault(); }
+});
+
+// 長押しオートリピート（PC・スマホ両対応）
+document.querySelectorAll('.step-btn').forEach(btn => {
+  const delta = parseInt(btn.dataset.delta);
+  let intervalId = null;
+  let timeoutId = null;
+
+  const startRepeat = (e) => {
+    e.preventDefault();
+    window.stepFrame(delta); // 初回即実行
+    // 300ms後から60msごとに連続実行
+    timeoutId = setTimeout(() => {
+      intervalId = setInterval(() => window.stepFrame(delta), 60);
+    }, 300);
+  };
+  const stopRepeat = () => {
+    if(timeoutId) { clearTimeout(timeoutId); timeoutId = null; }
+    if(intervalId) { clearInterval(intervalId); intervalId = null; }
+  };
+
+  // PC: mousedown/mouseup
+  btn.addEventListener('mousedown', startRepeat);
+  btn.addEventListener('mouseup', stopRepeat);
+  btn.addEventListener('mouseleave', stopRepeat);
+  // スマホ: touchstart/touchend
+  btn.addEventListener('touchstart', startRepeat, {passive:false});
+  btn.addEventListener('touchend', stopRepeat);
+  btn.addEventListener('touchcancel', stopRepeat);
 });
 
 window.confirmAllPhases = function() {
@@ -936,7 +965,14 @@ async function processVideo() {
     progFill.style.width = '5%';
 
     // --- Seekベースのフレーム取得 ---
-    const fps = 10; // 10fpsサンプリング
+    // 動画のフレームレートを推定（duration×既知fpsでフレーム数が整数に近いものを採用）
+    let fps = 30;
+    for(const candidate of [240, 120, 60, 30]) {
+      const frames = duration * candidate;
+      if(Math.abs(frames - Math.round(frames)) < 0.5) { fps = candidate; break; }
+    }
+    console.log(`動画: ${duration.toFixed(2)}s, 推定${fps}fps, 約${Math.floor(duration*fps)}フレーム`);
+    progLabel.textContent = `解析中...（${fps}fps検出）`;
     const totalFrames = Math.floor(duration * fps);
     allFrames = [];
     let tsCounter = 0;
