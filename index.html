@@ -15,10 +15,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Hiragino Sans',san
 
 /* Hero Section */
 .hero{text-align:center;padding:32px 16px 24px;background:linear-gradient(180deg,rgba(245,158,11,.08) 0%,transparent 100%);border-radius:0 0 24px 24px;margin:-12px -12px 16px}
-.hero-badge{display:inline-block;font-size:10px;font-weight:700;letter-spacing:3px;color:var(--accent);background:rgba(245,158,11,.1);padding:4px 14px;border-radius:20px;border:1px solid rgba(245,158,11,.2);margin-bottom:12px}
-.hero-title{font-size:36px;font-weight:900;letter-spacing:3px;margin-bottom:4px}
-.hero-title span{background:linear-gradient(135deg,var(--accent),#fbbf24,#f59e0b);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.hero-subtitle{font-size:13px;color:var(--mute);letter-spacing:2px;margin-bottom:16px}
+.hero-logo{max-width:280px;width:80%;height:auto;margin-bottom:12px}
+.hero-subtitle{font-size:11px;color:var(--mute);letter-spacing:3px;margin-bottom:16px;font-weight:600}
 .hero-features{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
 .feature-chip{font-size:10px;color:var(--text);background:var(--card);padding:5px 10px;border-radius:20px;border:1px solid var(--border);white-space:nowrap}
 
@@ -88,7 +86,6 @@ input[type="file"]{display:none}
 
 /* Feedback */
 .section-title{font-size:14px;font-weight:700;margin:28px 0 12px;padding:10px 14px;background:linear-gradient(135deg,var(--card),rgba(22,27,34,.8));border-radius:12px;border-left:3px solid var(--accent);display:flex;align-items:center;gap:8px}
-.section-icon{font-size:16px}
 .fb-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin:8px 0;cursor:pointer;transition:all .3s}
 .fb-card.warning{border-left:4px solid var(--red)}
 .fb-card.info{border-left:4px solid var(--blue)}
@@ -143,19 +140,18 @@ input[type="file"]{display:none}
 
 <div class="container">
   <div class="hero">
-    <div class="hero-badge">PITCHING ANALYSIS</div>
-    <h1 class="hero-title">Re'<span>forma</span></h1>
-    <p class="hero-subtitle">AI投球動作分析システム</p>
+    <img src="logo.png" alt="Re'Forma" class="hero-logo">
+    <p class="hero-subtitle">AI PITCHING ANALYSIS</p>
     <div class="hero-features">
-      <span class="feature-chip">🎯 フェーズ自動検出</span>
-      <span class="feature-chip">📐 7項目解析</span>
-      <span class="feature-chip">💡 改善提案</span>
+      <span class="feature-chip">フェーズ自動検出</span>
+      <span class="feature-chip">11項目解析</span>
+      <span class="feature-chip">改善提案</span>
     </div>
   </div>
 
   <!-- Upload -->
   <div class="upload-area" id="uploadArea">
-    <div class="icon">🎬</div>
+    <div class="icon"><svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="10" width="36" height="28" rx="4" stroke="#f59e0b" stroke-width="2" fill="none"/><polygon points="20,18 32,24 20,30" fill="#f59e0b"/></svg></div>
     <div class="label">投球動画をアップロード</div>
     <div class="sub">タップして選択、またはドラッグ＆ドロップ<br>MP4 / MOV 対応</div>
   </div>
@@ -183,8 +179,8 @@ input[type="file"]{display:none}
 
   <!-- Results -->
   <div class="results" id="results">
-    <div class="section-title"><span class="section-icon">📊</span> 総合スコア</div>
-    <div id="scoreStatus" style="font-size:11px;color:var(--mute);text-align:center;margin-bottom:4px">⚠ 自動検出スコア — フェーズを確定してください</div>
+    <div class="section-title">総合スコア</div>
+    <div id="scoreStatus" style="font-size:11px;color:var(--mute);text-align:center;margin-bottom:4px">自動検出スコア — フェーズを確定してください</div>
     <div class="score-ring" id="scoreRing" style="--pct:0">
       <div class="score-inner">
         <div class="score-value" id="scoreValue">--</div>
@@ -193,7 +189,7 @@ input[type="file"]{display:none}
     </div>
 
     <!-- Phase cards -->
-    <div class="section-title"><span class="section-icon">🎯</span> フェーズ検出</div>
+    <div class="section-title">フェーズ検出</div>
     <div class="phase-cards" id="phaseCards"></div>
 
     <!-- Frame editor -->
@@ -208,29 +204,29 @@ input[type="file"]{display:none}
       </div>
     </div>
 
-    <button class="confirm-btn" id="confirmBtn" onclick="confirmAllPhases()">✅ 全フェーズを確定してスコアを算出</button>
+    <button class="confirm-btn" id="confirmBtn" onclick="confirmAllPhases()">全フェーズを確定してスコアを算出</button>
 
     <!-- Metrics -->
-    <div class="section-title"><span class="section-icon">📏</span> 計測指標</div>
+    <div class="section-title">計測指標</div>
     <div class="metrics-grid" id="metricsGrid"></div>
     <div class="metrics-note" id="metricsNote" style="display:none">
-      <span>💡</span> 速度値はMediaPipe 3D推定に基づく参考値です。カメラ角度・距離により実測と異なる場合があります。
+      速度値はMediaPipe 3D推定に基づく参考値です。カメラ角度・距離により実測と異なる場合があります。
     </div>
 
     <!-- Feedback -->
-    <div class="section-title"><span class="section-icon">📋</span> フィードバック</div>
+    <div class="section-title">フィードバック</div>
     <div id="feedbackList"></div>
 
     <!-- Exercises -->
-    <div class="section-title"><span class="section-icon">💪</span> エクササイズ処方</div>
+    <div class="section-title">エクササイズ処方</div>
     <div id="exerciseList"></div>
   </div>
 
   <div class="footer">
-    <div class="footer-brand">Re'forma</div>
+    <div class="footer-brand">Re'Forma</div>
     <div>AI Pitching Analysis v4.0</div>
     <div>Powered by MediaPipe Pose Landmarker</div>
-    <div style="margin-top:6px">© 2024 Re'forma / TOM</div>
+    <div style="margin-top:6px">&copy; 2024 Re'Forma</div>
   </div>
 </div>
 
@@ -987,19 +983,19 @@ function renderResults(scoreResult) {
   const fbList = document.getElementById('feedbackList');
   const feedback = generateFeedback(scoreResult);
   if(feedback.length===0){
-    fbList.innerHTML = '<div style="font-size:12px;color:var(--green);text-align:center;padding:16px">✅ 大きな問題は検出されませんでした</div>';
+    fbList.innerHTML = '<div style="font-size:12px;color:var(--green);text-align:center;padding:16px">大きな問題は検出されませんでした</div>';
   } else {
     fbList.innerHTML = feedback.map((fb,idx)=>`
       <div class="fb-card ${fb.severity}" onclick="this.classList.toggle('open')">
         <div class="fb-header">
-          <div class="fb-title">${fb.severity==='warning'?'⚠️':'ℹ️'} ${fb.title}</div>
+          <div class="fb-title">${fb.title}</div>
           <div class="fb-toggle">▼</div>
         </div>
         <div class="fb-summary">${fb.detail.split('。')[0]}。</div>
         <div class="fb-body">
           <div class="fb-detail">${fb.detail}</div>
-          ${fb.evidence?`<div class="fb-evidence">📖 ${fb.evidence}</div>`:''}
-          ${fb.mechanism?`<div class="fb-mechanism">🔬 ${fb.mechanism}</div>`:''}
+          ${fb.evidence?`<div class="fb-evidence">Ref: ${fb.evidence}</div>`:''}
+          ${fb.mechanism?`<div class="fb-mechanism">${fb.mechanism}</div>`:''}
         </div>
       </div>
     `).join('');
@@ -1022,7 +1018,7 @@ function renderResults(scoreResult) {
           <div class="ex-name-en">${ex.name_en}</div>
           <span class="ex-badge ${catClass}">${ex.category}</span>
           <div class="ex-detail">${ex.purpose}</div>
-          <div class="ex-spec">📋 ${ex.sets}</div>
+          <div class="ex-spec">${ex.sets}</div>
         </div>
       `;
     }).join('');
@@ -1123,8 +1119,8 @@ window.confirmAllPhases = function() {
 
   const scoreResult = computeScore();
   renderResults(scoreResult);
-  document.getElementById('scoreStatus').innerHTML = '✅ <span style="color:var(--green);font-weight:bold">フェーズ確定済み</span> — 手動選択フレームに基づくスコア';
-  document.getElementById('confirmBtn').textContent = '🔄 フェーズを再選択してスコアを更新';
+  document.getElementById('scoreStatus').innerHTML = '<span style="color:var(--green);font-weight:bold">フェーズ確定済み</span> — 手動選択フレームに基づくスコア';
+  document.getElementById('confirmBtn').textContent = 'フェーズを再選択してスコアを更新';
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -1239,7 +1235,7 @@ async function processVideo() {
 
     const duration = videoEl.duration;
     if(!duration || !isFinite(duration) || duration <= 0) {
-      progLabel.textContent = '❌ 動画を読み込めませんでした。別の動画をお試しください。';
+      progLabel.textContent = 'Error: 動画を読み込めませんでした。別の動画をお試しください。';
       return;
     }
 
@@ -1335,7 +1331,7 @@ async function processVideo() {
     }
 
     if(allFrames.length < 5) {
-      progLabel.textContent = `❌ 姿勢を十分に検出できませんでした（${allFrames.length}フレーム）。\n全身が映る明るい場所の動画をお試しください。`;
+      progLabel.textContent = `Error: 姿勢を十分に検出できませんでした（${allFrames.length}フレーム）。\n全身が映る明るい場所の動画をお試しください。`;
       progFill.style.width = '0%';
       return;
     }
@@ -1355,7 +1351,7 @@ async function processVideo() {
 
   } catch(err) {
     console.error('processVideo error:', err);
-    progLabel.textContent = `❌ エラー: ${err.message}`;
+    progLabel.textContent = `Error: エラー: ${err.message}`;
     progFill.style.width = '0%';
   }
 }
@@ -1418,7 +1414,7 @@ initMediaPipe().catch(e=>{
   const ua = document.getElementById('uploadArea');
   if(ua) {
     ua.innerHTML = `<div style="color:#ff6b6b;padding:20px;text-align:center;">
-      <div style="font-size:24px;margin-bottom:10px;">⚠️</div>
+      <div style="font-size:24px;margin-bottom:10px;color:#ff6b6b;">!</div>
       <div style="font-weight:bold;margin-bottom:8px;">AIモデルの読み込みに失敗しました</div>
       <div style="font-size:13px;color:#aaa;">
         ${e.message || 'ネットワークエラー'}<br><br>
