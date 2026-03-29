@@ -11,7 +11,7 @@
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--bg:#0d1117;--card:#161b22;--border:#30363d;--text:#c9d1d9;--mute:#484f58;--accent:#f59e0b;--green:#10b981;--blue:#60a5fa;--red:#f87171;--purple:#a78bfa}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Hiragino Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
-.container{max-width:800px;margin:0 auto;padding:12px}
+.container{max-width:480px;margin:0 auto;padding:12px}
 
 /* Header */
 .header{text-align:center;padding:20px 0 10px}
@@ -771,7 +771,7 @@ function drawEditorFrame() {
   document.getElementById('frameInfo').textContent = `F${editingFrameIdx} / ${allFrames.length-1}  (${f.time.toFixed(2)}s)`;
 }
 
-function stepFrame(delta) {
+window.stepFrame = function(delta) {
   if(activePhaseIdx===null) return;
   editingFrameIdx = Math.max(0, Math.min(allFrames.length-1, editingFrameIdx+delta));
   selFrames[PHASE_NAMES[activePhaseIdx]] = editingFrameIdx;
@@ -784,7 +784,7 @@ function stepFrame(delta) {
     cards[activePhaseIdx].querySelector('img').src = f.imgData;
     cards[activePhaseIdx].querySelector('.phase-time').textContent = `${f.time.toFixed(2)}s / F${editingFrameIdx}`;
   }
-}
+};
 
 // Arrow key support
 document.addEventListener('keydown', (e)=>{
@@ -793,7 +793,7 @@ document.addEventListener('keydown', (e)=>{
   else if(e.key==='ArrowRight') { stepFrame(1); e.preventDefault(); }
 });
 
-function confirmAllPhases() {
+window.confirmAllPhases = function() {
   if(activePhaseIdx!==null){
     selFrames[PHASE_NAMES[activePhaseIdx]] = editingFrameIdx;
     activePhaseIdx = null;
@@ -806,7 +806,7 @@ function confirmAllPhases() {
   renderResults(scoreResult);
   document.getElementById('scoreStatus').innerHTML = '✅ <span style="color:var(--green);font-weight:bold">フェーズ確定済み</span> — 手動選択フレームに基づくスコア';
   document.getElementById('confirmBtn').textContent = '🔄 フェーズを再選択してスコアを更新';
-}
+};
 
 // ═══════════════════════════════════════════════════════════════
 // Main processing pipeline
