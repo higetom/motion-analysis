@@ -240,9 +240,9 @@ const NORMATIVE = {
   "軸足膝屈曲": {pro:[40,65], amateur:[25,80], unit:"°", better:"range"},
   "体幹傾き": {pro:[25,40], amateur:[15,55], unit:"°", better:"range"},
   "ストライド長": {pro:[180,260], amateur:[120,320], unit:"%", better:"range"},
-  "並進運動速度": {pro:[13,24], amateur:[6,32], unit:"km/h", better:"higher"},
-  "腕振り速度": {pro:[65,113], amateur:[32,146], unit:"km/h", better:"higher"},
-  "腕振り効率": {pro:[4.0,7.0], amateur:[2.5,10.0], unit:"倍", better:"range"},
+  "並進運動速度": {pro:[6,14], amateur:[3,20], unit:"km/h", better:"higher"},
+  "腕振り速度": {pro:[45,95], amateur:[20,130], unit:"km/h", better:"higher"},
+  "腕振り効率": {pro:[4.0,8.0], amateur:[2.0,12.0], unit:"倍", better:"range"},
 };
 
 const WEIGHTS = {
@@ -282,6 +282,8 @@ let selFrames = {}; // phase name -> frame index
 let activePhaseIdx = null;
 let editingFrameIdx = -1;
 let motionMetrics = {};
+let detectedFps = 30;
+let videoAspect = 1.0; // width/height
 let videoEl, drawCanvas, drawCtx;
 
 // ═══════════════════════════════════════════════════════════════
@@ -304,7 +306,7 @@ function norm(arr) {
 }
 
 // Savitzky-Golay simplified (moving average with polynomial fit approximation)
-function smooth(arr, win=11) {
+function smooth(arr, win=5) {
   if(arr.length<5) return arr.slice();
   win = Math.max(3, Math.min(win, Math.floor(arr.length/4)*2+1));
   if(win%2===0) win--;
@@ -520,36 +522,52 @@ function detect5Phases(frames, arm) {
 // ═══════════════════════════════════════════════════════════════
 // Motion metrics
 // ═══════════════════════════════════════════════════════════════
+// TRUNK_M: average shoulder-to-hip distance for baseball players (~52cm)
+const TRUNK_M = 0.52;
+
 function calcTranslationSpeed(frames, arm, fps=30) {
   if(frames.length<5) return 0;
   const lms = frames.map(f=>f.landmarks);
-  const comX = lms.map(l=>((l[11].x+l[12].x)/2+(l[23].x+l[24].x)/2)/2);
+  const ar = videoAspect || 1.0;
+  // Center-of-mass X in aspect-corrected coordinates
+  const comX = lms.map(l=>((l[11].x+l[12].x)/2+(l[23].x+l[24].x)/2)/2 * ar);
+  const comY = lms.map(l=>((l[11].y+l[12].y)/2+(l[23].y+l[24].y)/2)/2);
   const trunkLens = lms.map(l=>Math.abs((l[11].y+l[12].y)/2-(l[23].y+l[24].y)/2));
   const trunkAvg = Math.max(trunkLens.reduce((a,b)=>a+b,0)/trunkLens.length, 0.05);
-  const comXs = smooth(comX);
-  const velX = gradient(comXs).map(v=>v*fps);
-  const velNorm = velX.map(v=>Math.abs(v)/trunkAvg);
-  return +(Math.max(...velNorm) * 0.45 * 3.6).toFixed(1);
+  const comXs = smooth(comX, 3);
+  const comYs = smooth(comY, 3);
+  const vx = gradient(comXs).map(v=>v*fps);
+  const vy = gradient(comYs).map(v=>v*fps);
+  const spd = vx.map((v,i)=>Math.sqrt(v**2+vy[i]**2)/trunkAvg);
+  // Use 90th percentile instead of max to reduce noise spikes
+  const sorted = spd.slice().sort((a,b)=>a-b);
+  const p90 = sorted[Math.floor(sorted.length*0.9)];
+  return +(p90 * TRUNK_M * 3.6).toFixed(1);
 }
 
 function calcArmSpeed(frames, arm, fps=30) {
   if(frames.length<5) return 0;
   const idx = ARM_IDX[arm];
   const lms = frames.map(f=>f.landmarks);
-  const wX = smooth(lms.map(l=>l[idx.W].x));
-  const wY = smooth(lms.map(l=>l[idx.W].y));
+  const ar = videoAspect || 1.0;
+  // Wrist position in aspect-corrected coordinates
+  const wX = smooth(lms.map(l=>l[idx.W].x * ar), 3);
+  const wY = smooth(lms.map(l=>l[idx.W].y), 3);
   const trunkLens = lms.map(l=>Math.abs((l[11].y+l[12].y)/2-(l[23].y+l[24].y)/2));
   const trunkAvg = Math.max(trunkLens.reduce((a,b)=>a+b,0)/trunkLens.length, 0.05);
   const vx = gradient(wX).map(v=>v*fps);
   const vy = gradient(wY).map(v=>v*fps);
   const spd = vx.map((v,i)=>Math.sqrt(v**2+vy[i]**2)/trunkAvg);
-  return +(Math.max(...spd) * 0.45 * 3.6).toFixed(1);
+  // Use 95th percentile for arm speed (peak is important but filter noise)
+  const sorted = spd.slice().sort((a,b)=>a-b);
+  const p95 = sorted[Math.floor(sorted.length*0.95)];
+  return +(p95 * TRUNK_M * 3.6).toFixed(1);
 }
 
 function calcArmEfficiency(frames, arm, fps=30) {
   const trans = calcTranslationSpeed(frames,arm,fps);
   const armSpd = calcArmSpeed(frames,arm,fps);
-  if(trans<0.1) return 0;
+  if(trans<0.5) return 0;
   return +(armSpd/trans).toFixed(1);
 }
 
@@ -593,12 +611,11 @@ function computeScore() {
     components[name] = {score:+score.toFixed(1), raw:+val.toFixed(1), unit:NORMATIVE[name]?.unit||"", phase:phaseName};
   }
 
-  // Motion metrics (whole sequence)
-  const fps = 30;
+  // Motion metrics (whole sequence) — use globally detected fps
   motionMetrics = {
-    "並進運動速度": calcTranslationSpeed(allFrames, selectedArm, fps),
-    "腕振り速度": calcArmSpeed(allFrames, selectedArm, fps),
-    "腕振り効率": calcArmEfficiency(allFrames, selectedArm, fps),
+    "並進運動速度": calcTranslationSpeed(allFrames, selectedArm, detectedFps),
+    "腕振り速度": calcArmSpeed(allFrames, selectedArm, detectedFps),
+    "腕振り効率": calcArmEfficiency(allFrames, selectedArm, detectedFps),
   };
   for(const [name, raw] of Object.entries(motionMetrics)){
     const score = Math.max(0,Math.min(100,scoreByNormative(name,raw)));
@@ -650,13 +667,13 @@ function generateFeedback(scoreResult) {
 
   // Translation speed
   const ts = c["並進運動速度"]?.raw || 0;
-  if(ts<6) fb.push({severity:'warning',title:'並進運動速度が低い',detail:`並進運動の最高速度が${ts}km/hと低水準（プロ水準: 13-24km/h）。体重移動が遅く、腕の振りだけでボールを投げている状態です。下半身の推進力を高めましょう。`,evidence:'Stodden et al. (2001)',exercises:['下肢パワー_strength','地面反力活用_neuromuscular']});
-  else if(ts<13) fb.push({severity:'info',title:'並進運動速度に伸びしろあり',detail:`並進運動の最高速度が${ts}km/h（プロ水準: 13-24km/h）。体重移動をもっと速くすることで、そのエネルギーが腕→ボールに伝わり球速アップにつながります。`,evidence:'Stodden et al. (2001)',exercises:['下肢パワー_strength','下肢パワー伝達_neuromuscular','股関節可動性_mobility']});
+  if(ts<3) fb.push({severity:'warning',title:'並進運動速度が低い',detail:`並進運動の最高速度が${ts}km/hと低水準（プロ水準: 6-14km/h）。体重移動が遅く、腕の振りだけでボールを投げている状態です。下半身の推進力を高めましょう。`,evidence:'Stodden et al. (2001)',exercises:['下肢パワー_strength','地面反力活用_neuromuscular']});
+  else if(ts<6) fb.push({severity:'info',title:'並進運動速度に伸びしろあり',detail:`並進運動の最高速度が${ts}km/h（プロ水準: 6-14km/h）。体重移動をもっと速くすることで、そのエネルギーが腕→ボールに伝わり球速アップにつながります。`,evidence:'Stodden et al. (2001)',exercises:['下肢パワー_strength','下肢パワー伝達_neuromuscular','股関節可動性_mobility']});
 
   // Arm speed
   const as = c["腕振り速度"]?.raw || 0;
-  if(as<32) fb.push({severity:'warning',title:'腕振り速度が低い',detail:`腕振りの最高速度が${as}km/hと低水準（プロ水準: 65-113km/h）。ボールスピードに直結する指標です。`,evidence:'Fleisig et al. (1999)',exercises:['肩甲骨制御_neuromuscular','コッキング位置_neuromuscular']});
-  else if(as<65) fb.push({severity:'info',title:'腕振り速度に伸びしろあり',detail:`腕振りの最高速度が${as}km/h（プロ水準: 65-113km/h）。体幹の回旋力と肩甲骨の動的安定性を高めることで改善できます。`,evidence:'Fleisig et al. (1999)',exercises:['骨盤分離_neuromuscular','体幹回転力_strength','肩甲骨制御_neuromuscular']});
+  if(as<20) fb.push({severity:'warning',title:'腕振り速度が低い',detail:`腕振りの最高速度が${as}km/hと低水準（プロ水準: 45-95km/h）。ボールスピードに直結する指標です。`,evidence:'Fleisig et al. (1999)',exercises:['肩甲骨制御_neuromuscular','コッキング位置_neuromuscular']});
+  else if(as<45) fb.push({severity:'info',title:'腕振り速度に伸びしろあり',detail:`腕振りの最高速度が${as}km/h（プロ水準: 45-95km/h）。体幹の回旋力と肩甲骨の動的安定性を高めることで改善できます。`,evidence:'Fleisig et al. (1999)',exercises:['骨盤分離_neuromuscular','体幹回転力_strength','肩甲骨制御_neuromuscular']});
 
   // Arm efficiency
   const ae = c["腕振り効率"]?.raw || 0;
@@ -981,6 +998,7 @@ async function processVideo() {
 
     const vw = videoEl.videoWidth || 640;
     const vh = videoEl.videoHeight || 360;
+    videoAspect = vw / vh; // Store aspect ratio globally
     // 最大辺640pxにリサイズ（縦横どちらにも対応）
     const maxDim = 640;
     const scale = Math.max(vw, vh) > maxDim ? maxDim / Math.max(vw, vh) : 1;
@@ -992,12 +1010,13 @@ async function processVideo() {
 
     // --- Seekベースのフレーム取得 ---
     // 動画のフレームレートを推定（duration×既知fpsでフレーム数が整数に近いものを採用）
-    let fps = 30;
+    detectedFps = 30;
     for(const candidate of [240, 120, 60, 30]) {
       const frames = duration * candidate;
-      if(Math.abs(frames - Math.round(frames)) < 0.5) { fps = candidate; break; }
+      if(Math.abs(frames - Math.round(frames)) < 0.5) { detectedFps = candidate; break; }
     }
-    console.log(`動画: ${duration.toFixed(2)}s, 推定${fps}fps, 約${Math.floor(duration*fps)}フレーム`);
+    const fps = detectedFps;
+    console.log(`動画: ${duration.toFixed(2)}s, 推定${fps}fps, aspect=${videoAspect.toFixed(2)}, 約${Math.floor(duration*fps)}フレーム`);
     progLabel.textContent = `解析中...（${fps}fps検出）`;
     const totalFrames = Math.floor(duration * fps);
     allFrames = [];
