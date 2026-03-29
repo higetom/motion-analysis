@@ -1020,14 +1020,14 @@ async function processVideo() {
   }
 }
 
-function selectArm(arm) {
+window.selectArm = function(arm) {
   selectedArm = arm;
   document.querySelectorAll('.arm-btn').forEach(b=>{
     b.classList.toggle('active', b.dataset.arm===arm);
   });
   // 腕選択後すぐに解析開始（ユーザージェスチャーの中で実行）
   processVideo();
-}
+};
 
 // ═══════════════════════════════════════════════════════════════
 // File handling
