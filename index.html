@@ -13,23 +13,27 @@
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Hiragino Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
 .container{max-width:480px;margin:0 auto;padding:12px}
 
-/* Header */
-.header{text-align:center;padding:24px 0 16px}
-.header h1{font-size:26px;font-weight:800;background:linear-gradient(135deg,var(--accent),#fbbf24);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:2px}
-.header p{font-size:11px;color:var(--mute);margin-top:6px;letter-spacing:1px}
+/* Hero Section */
+.hero{text-align:center;padding:32px 16px 24px;background:linear-gradient(180deg,rgba(245,158,11,.08) 0%,transparent 100%);border-radius:0 0 24px 24px;margin:-12px -12px 16px}
+.hero-badge{display:inline-block;font-size:10px;font-weight:700;letter-spacing:3px;color:var(--accent);background:rgba(245,158,11,.1);padding:4px 14px;border-radius:20px;border:1px solid rgba(245,158,11,.2);margin-bottom:12px}
+.hero-title{font-size:36px;font-weight:900;letter-spacing:3px;margin-bottom:4px}
+.hero-title span{background:linear-gradient(135deg,var(--accent),#fbbf24,#f59e0b);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero-subtitle{font-size:13px;color:var(--mute);letter-spacing:2px;margin-bottom:16px}
+.hero-features{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+.feature-chip{font-size:10px;color:var(--text);background:var(--card);padding:5px 10px;border-radius:20px;border:1px solid var(--border);white-space:nowrap}
 
 /* Upload Area */
-.upload-area{border:2px dashed var(--border);border-radius:16px;padding:40px 20px;text-align:center;cursor:pointer;transition:all .3s;margin:16px 0}
-.upload-area:hover,.upload-area.dragover{border-color:var(--accent);background:rgba(245,158,11,.05)}
-.upload-area .icon{font-size:48px;margin-bottom:12px}
-.upload-area .label{font-size:16px;font-weight:600;color:var(--text)}
-.upload-area .sub{font-size:12px;color:var(--mute);margin-top:6px}
+.upload-area{border:2px dashed var(--border);border-radius:20px;padding:48px 20px;text-align:center;cursor:pointer;transition:all .3s;margin:16px 0;background:linear-gradient(135deg,rgba(22,27,34,.5),rgba(22,27,34,.8))}
+.upload-area:hover,.upload-area.dragover{border-color:var(--accent);background:rgba(245,158,11,.03);transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,0,0,.3)}
+.upload-area .icon{font-size:56px;margin-bottom:16px;filter:grayscale(.3)}
+.upload-area .label{font-size:17px;font-weight:700;color:var(--text)}
+.upload-area .sub{font-size:12px;color:var(--mute);margin-top:8px;line-height:1.6}
 input[type="file"]{display:none}
 
 /* Progress */
 .progress-section{display:none;margin:20px 0}
-.progress-bar-bg{background:var(--card);border-radius:8px;height:8px;overflow:hidden;margin:8px 0}
-.progress-bar-fill{background:linear-gradient(90deg,var(--accent),var(--green));height:100%;width:0;transition:width .3s;border-radius:8px}
+.progress-bar-bg{background:var(--card);border-radius:10px;height:10px;overflow:hidden;margin:8px 0;border:1px solid var(--border)}
+.progress-bar-fill{background:linear-gradient(90deg,var(--accent),var(--green));height:100%;width:0;transition:width .3s;border-radius:10px}
 .progress-label{font-size:13px;color:var(--mute);text-align:center}
 .progress-detail{font-size:11px;color:var(--mute);text-align:center;margin-top:4px}
 
@@ -45,10 +49,10 @@ input[type="file"]{display:none}
 
 /* Results */
 .results{display:none}
-.score-ring{width:140px;height:140px;border-radius:50%;background:conic-gradient(var(--accent) calc(var(--pct)*3.6deg),var(--card) 0);display:flex;align-items:center;justify-content:center;margin:16px auto;position:relative}
-.score-ring::before{content:'';position:absolute;width:110px;height:110px;border-radius:50%;background:var(--bg)}
+.score-ring{width:160px;height:160px;border-radius:50%;background:conic-gradient(var(--accent) calc(var(--pct)*3.6deg),var(--card) 0);display:flex;align-items:center;justify-content:center;margin:20px auto;position:relative;box-shadow:0 0 30px rgba(245,158,11,.15)}
+.score-ring::before{content:'';position:absolute;width:126px;height:126px;border-radius:50%;background:var(--bg)}
 .score-inner{position:relative;text-align:center}
-.score-value{font-size:36px;font-weight:800;color:var(--accent)}
+.score-value{font-size:42px;font-weight:900;color:var(--accent)}
 .score-grade{font-size:14px;color:var(--mute)}
 
 /* Phase cards */
@@ -71,14 +75,17 @@ input[type="file"]{display:none}
 .metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
 .metric-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;transition:all .2s}
 .metric-name{font-size:11px;color:var(--mute);font-weight:600;margin-bottom:2px}
+.metric-phase{display:inline-block;font-size:8px;padding:2px 6px;border-radius:10px;background:rgba(245,158,11,.1);color:var(--accent);margin-left:4px;font-weight:600}
 .metric-value{font-size:22px;font-weight:700;margin:2px 0}
 .metric-unit{font-size:10px;color:var(--mute);margin-left:2px}
 .metric-bar{height:5px;background:var(--border);border-radius:3px;margin-top:6px;overflow:hidden}
 .metric-fill{height:100%;border-radius:3px;transition:width .6s ease}
 .metric-score{font-size:10px;color:var(--mute);margin-top:3px;text-align:right}
+.metrics-note{font-size:10px;color:var(--mute);padding:8px 12px;margin:8px 0 0;background:rgba(245,158,11,.04);border-radius:8px;display:flex;align-items:flex-start;gap:6px;line-height:1.5}
 
 /* Feedback */
-.section-title{font-size:14px;font-weight:700;margin:24px 0 10px;padding:8px 12px;background:var(--card);border-radius:10px;border-left:3px solid var(--accent)}
+.section-title{font-size:14px;font-weight:700;margin:28px 0 12px;padding:10px 14px;background:linear-gradient(135deg,var(--card),rgba(22,27,34,.8));border-radius:12px;border-left:3px solid var(--accent);display:flex;align-items:center;gap:8px}
+.section-icon{font-size:16px}
 .fb-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin:8px 0;cursor:pointer;transition:all .3s}
 .fb-card.warning{border-left:4px solid var(--red)}
 .fb-card.info{border-left:4px solid var(--blue)}
@@ -113,7 +120,8 @@ input[type="file"]{display:none}
 .confirm-btn:disabled{opacity:.4;cursor:not-allowed}
 
 /* Footer */
-.footer{text-align:center;padding:24px 0;font-size:10px;color:var(--mute)}
+.footer{text-align:center;padding:32px 0;font-size:10px;color:var(--mute);border-top:1px solid var(--border);margin-top:32px}
+.footer-brand{font-size:16px;font-weight:800;background:linear-gradient(135deg,var(--accent),#fbbf24);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px;letter-spacing:2px}
 
 /* Loading overlay */
 .loading-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(13,17,23,.9);display:none;align-items:center;justify-content:center;z-index:100;flex-direction:column}
@@ -131,9 +139,15 @@ input[type="file"]{display:none}
 <body>
 
 <div class="container">
-  <div class="header">
-    <h1>Re'forma</h1>
-    <p>投球動作分析 — ブラウザ完結型</p>
+  <div class="hero">
+    <div class="hero-badge">PITCHING ANALYSIS</div>
+    <h1 class="hero-title">Re'<span>forma</span></h1>
+    <p class="hero-subtitle">AI投球動作分析システム</p>
+    <div class="hero-features">
+      <span class="feature-chip">🎯 フェーズ自動検出</span>
+      <span class="feature-chip">📐 7項目解析</span>
+      <span class="feature-chip">💡 改善提案</span>
+    </div>
   </div>
 
   <!-- Upload -->
@@ -166,7 +180,7 @@ input[type="file"]{display:none}
 
   <!-- Results -->
   <div class="results" id="results">
-    <div class="section-title">📊 Re'formaスコア</div>
+    <div class="section-title"><span class="section-icon">📊</span> 総合スコア</div>
     <div id="scoreStatus" style="font-size:11px;color:var(--mute);text-align:center;margin-bottom:4px">⚠ 自動検出スコア — フェーズを確定してください</div>
     <div class="score-ring" id="scoreRing" style="--pct:0">
       <div class="score-inner">
@@ -176,7 +190,7 @@ input[type="file"]{display:none}
     </div>
 
     <!-- Phase cards -->
-    <div class="section-title">🎯 フェーズ検出</div>
+    <div class="section-title"><span class="section-icon">🎯</span> フェーズ検出</div>
     <div class="phase-cards" id="phaseCards"></div>
 
     <!-- Frame editor -->
@@ -194,22 +208,26 @@ input[type="file"]{display:none}
     <button class="confirm-btn" id="confirmBtn" onclick="confirmAllPhases()">✅ 全フェーズを確定してスコアを算出</button>
 
     <!-- Metrics -->
-    <div class="section-title">📏 計測指標</div>
+    <div class="section-title"><span class="section-icon">📏</span> 計測指標</div>
     <div class="metrics-grid" id="metricsGrid"></div>
+    <div class="metrics-note" id="metricsNote" style="display:none">
+      <span>💡</span> 速度値はMediaPipe 3D推定に基づく参考値です。カメラ角度・距離により実測と異なる場合があります。
+    </div>
 
     <!-- Feedback -->
-    <div class="section-title">📋 フィードバック</div>
+    <div class="section-title"><span class="section-icon">📋</span> フィードバック</div>
     <div id="feedbackList"></div>
 
     <!-- Exercises -->
-    <div class="section-title">💪 エクササイズ処方</div>
+    <div class="section-title"><span class="section-icon">💪</span> エクササイズ処方</div>
     <div id="exerciseList"></div>
   </div>
 
   <div class="footer">
-    Re'forma Pitching Analysis v3.0<br>
-    MediaPipe Pose Landmarker (Browser)<br>
-    © Re'forma / TOM
+    <div class="footer-brand">Re'forma</div>
+    <div>AI Pitching Analysis v4.0</div>
+    <div>Powered by MediaPipe Pose Landmarker</div>
+    <div style="margin-top:6px">© 2024 Re'forma / TOM</div>
   </div>
 </div>
 
@@ -240,8 +258,8 @@ const NORMATIVE = {
   "軸足膝屈曲": {pro:[40,65], amateur:[25,80], unit:"°", better:"range"},
   "体幹傾き": {pro:[25,40], amateur:[15,55], unit:"°", better:"range"},
   "ストライド長": {pro:[180,260], amateur:[120,320], unit:"%", better:"range"},
-  "並進運動速度": {pro:[6,14], amateur:[3,20], unit:"km/h", better:"higher"},
-  "腕振り速度": {pro:[45,95], amateur:[20,130], unit:"km/h", better:"higher"},
+  "並進運動速度": {pro:[7,15], amateur:[3,22], unit:"km/h", better:"higher"},
+  "腕振り速度": {pro:[50,100], amateur:[25,140], unit:"km/h", better:"higher"},
   "腕振り効率": {pro:[4.0,8.0], amateur:[2.0,12.0], unit:"倍", better:"range"},
 };
 
@@ -520,48 +538,44 @@ function detect5Phases(frames, arm) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Motion metrics
+// Motion metrics — using worldLandmarks (meters)
 // ═══════════════════════════════════════════════════════════════
-// TRUNK_M: average shoulder-to-hip distance for baseball players (~52cm)
-const TRUNK_M = 0.52;
-
 function calcTranslationSpeed(frames, arm, fps=30) {
   if(frames.length<5) return 0;
-  const lms = frames.map(f=>f.landmarks);
-  const ar = videoAspect || 1.0;
-  // Center-of-mass X in aspect-corrected coordinates
-  const comX = lms.map(l=>((l[11].x+l[12].x)/2+(l[23].x+l[24].x)/2)/2 * ar);
-  const comY = lms.map(l=>((l[11].y+l[12].y)/2+(l[23].y+l[24].y)/2)/2);
-  const trunkLens = lms.map(l=>Math.abs((l[11].y+l[12].y)/2-(l[23].y+l[24].y)/2));
-  const trunkAvg = Math.max(trunkLens.reduce((a,b)=>a+b,0)/trunkLens.length, 0.05);
-  const comXs = smooth(comX, 3);
-  const comYs = smooth(comY, 3);
-  const vx = gradient(comXs).map(v=>v*fps);
-  const vy = gradient(comYs).map(v=>v*fps);
-  const spd = vx.map((v,i)=>Math.sqrt(v**2+vy[i]**2)/trunkAvg);
-  // Use 90th percentile instead of max to reduce noise spikes
+  // Use worldLandmarks (meters) for center-of-mass
+  const wlms = frames.map(f=>f.worldLandmarks);
+  // CoM = midpoint of shoulders + hips
+  const comX = wlms.map(l=>((l[11].x+l[12].x)/2+(l[23].x+l[24].x)/2)/2);
+  const comY = wlms.map(l=>((l[11].y+l[12].y)/2+(l[23].y+l[24].y)/2)/2);
+  const comZ = wlms.map(l=>((l[11].z+l[12].z)/2+(l[23].z+l[24].z)/2)/2);
+  const cXs = smooth(comX, 3);
+  const cYs = smooth(comY, 3);
+  const cZs = smooth(comZ, 3);
+  const vx = gradient(cXs).map(v=>v*fps);
+  const vy = gradient(cYs).map(v=>v*fps);
+  const vz = gradient(cZs).map(v=>v*fps);
+  const spd = vx.map((v,i)=>Math.sqrt(v**2+vy[i]**2+vz[i]**2)); // m/s
+  // 90th percentile to filter noise
   const sorted = spd.slice().sort((a,b)=>a-b);
   const p90 = sorted[Math.floor(sorted.length*0.9)];
-  return +(p90 * TRUNK_M * 3.6).toFixed(1);
+  return +(p90 * 3.6).toFixed(1); // m/s → km/h
 }
 
 function calcArmSpeed(frames, arm, fps=30) {
   if(frames.length<5) return 0;
   const idx = ARM_IDX[arm];
-  const lms = frames.map(f=>f.landmarks);
-  const ar = videoAspect || 1.0;
-  // Wrist position in aspect-corrected coordinates
-  const wX = smooth(lms.map(l=>l[idx.W].x * ar), 3);
-  const wY = smooth(lms.map(l=>l[idx.W].y), 3);
-  const trunkLens = lms.map(l=>Math.abs((l[11].y+l[12].y)/2-(l[23].y+l[24].y)/2));
-  const trunkAvg = Math.max(trunkLens.reduce((a,b)=>a+b,0)/trunkLens.length, 0.05);
+  const wlms = frames.map(f=>f.worldLandmarks);
+  const wX = smooth(wlms.map(l=>l[idx.W].x), 3);
+  const wY = smooth(wlms.map(l=>l[idx.W].y), 3);
+  const wZ = smooth(wlms.map(l=>l[idx.W].z), 3);
   const vx = gradient(wX).map(v=>v*fps);
   const vy = gradient(wY).map(v=>v*fps);
-  const spd = vx.map((v,i)=>Math.sqrt(v**2+vy[i]**2)/trunkAvg);
-  // Use 95th percentile for arm speed (peak is important but filter noise)
+  const vz = gradient(wZ).map(v=>v*fps);
+  const spd = vx.map((v,i)=>Math.sqrt(v**2+vy[i]**2+vz[i]**2)); // m/s
+  // 95th percentile for peak arm speed
   const sorted = spd.slice().sort((a,b)=>a-b);
   const p95 = sorted[Math.floor(sorted.length*0.95)];
-  return +(p95 * TRUNK_M * 3.6).toFixed(1);
+  return +(p95 * 3.6).toFixed(1); // m/s → km/h
 }
 
 function calcArmEfficiency(frames, arm, fps=30) {
@@ -667,13 +681,13 @@ function generateFeedback(scoreResult) {
 
   // Translation speed
   const ts = c["並進運動速度"]?.raw || 0;
-  if(ts<3) fb.push({severity:'warning',title:'並進運動速度が低い',detail:`並進運動の最高速度が${ts}km/hと低水準（プロ水準: 6-14km/h）。体重移動が遅く、腕の振りだけでボールを投げている状態です。下半身の推進力を高めましょう。`,evidence:'Stodden et al. (2001)',exercises:['下肢パワー_strength','地面反力活用_neuromuscular']});
-  else if(ts<6) fb.push({severity:'info',title:'並進運動速度に伸びしろあり',detail:`並進運動の最高速度が${ts}km/h（プロ水準: 6-14km/h）。体重移動をもっと速くすることで、そのエネルギーが腕→ボールに伝わり球速アップにつながります。`,evidence:'Stodden et al. (2001)',exercises:['下肢パワー_strength','下肢パワー伝達_neuromuscular','股関節可動性_mobility']});
+  if(ts<3) fb.push({severity:'warning',title:'並進運動速度が低い',detail:`並進運動の最高速度が${ts}km/hと低水準（プロ水準: 7-15km/h）。体重移動が遅く、腕の振りだけでボールを投げている状態です。下半身の推進力を高めましょう。`,evidence:'Stodden et al. (2001)',exercises:['下肢パワー_strength','地面反力活用_neuromuscular']});
+  else if(ts<7) fb.push({severity:'info',title:'並進運動速度に伸びしろあり',detail:`並進運動の最高速度が${ts}km/h（プロ水準: 7-15km/h）。体重移動をもっと速くすることで、そのエネルギーが腕→ボールに伝わり球速アップにつながります。`,evidence:'Stodden et al. (2001)',exercises:['下肢パワー_strength','下肢パワー伝達_neuromuscular','股関節可動性_mobility']});
 
   // Arm speed
   const as = c["腕振り速度"]?.raw || 0;
-  if(as<20) fb.push({severity:'warning',title:'腕振り速度が低い',detail:`腕振りの最高速度が${as}km/hと低水準（プロ水準: 45-95km/h）。ボールスピードに直結する指標です。`,evidence:'Fleisig et al. (1999)',exercises:['肩甲骨制御_neuromuscular','コッキング位置_neuromuscular']});
-  else if(as<45) fb.push({severity:'info',title:'腕振り速度に伸びしろあり',detail:`腕振りの最高速度が${as}km/h（プロ水準: 45-95km/h）。体幹の回旋力と肩甲骨の動的安定性を高めることで改善できます。`,evidence:'Fleisig et al. (1999)',exercises:['骨盤分離_neuromuscular','体幹回転力_strength','肩甲骨制御_neuromuscular']});
+  if(as<25) fb.push({severity:'warning',title:'腕振り速度が低い',detail:`腕振りの最高速度が${as}km/hと低水準（プロ水準: 50-100km/h）。ボールスピードに直結する指標です。`,evidence:'Fleisig et al. (1999)',exercises:['肩甲骨制御_neuromuscular','コッキング位置_neuromuscular']});
+  else if(as<50) fb.push({severity:'info',title:'腕振り速度に伸びしろあり',detail:`腕振りの最高速度が${as}km/h（プロ水準: 50-100km/h）。体幹の回旋力と肩甲骨の動的安定性を高めることで改善できます。`,evidence:'Fleisig et al. (1999)',exercises:['骨盤分離_neuromuscular','体幹回転力_strength','肩甲骨制御_neuromuscular']});
 
   // Arm efficiency
   const ae = c["腕振り効率"]?.raw || 0;
@@ -724,17 +738,20 @@ function renderResults(scoreResult) {
   // Metrics grid
   const mg = document.getElementById('metricsGrid');
   mg.innerHTML = '';
+  let hasSpeedMetrics = false;
   for(const [name, data] of Object.entries(components)){
+    if(['並進運動速度','腕振り速度'].includes(name)) hasSpeedMetrics = true;
     const color = data.score>=85?'var(--green)':data.score>=50?'var(--accent)':'var(--red)';
     mg.innerHTML += `
       <div class="metric-card">
-        <div class="metric-name">${name} <span style="font-size:9px;color:var(--accent)">${data.phase||''}</span></div>
+        <div class="metric-name">${name}${data.phase?` <span class="metric-phase">${data.phase}</span>`:''}</div>
         <div class="metric-value" style="color:${color}">${data.raw}<span class="metric-unit">${data.unit}</span></div>
         <div class="metric-bar"><div class="metric-fill" style="width:${Math.min(data.score,100)}%;background:${color}"></div></div>
         <div class="metric-score">${data.score.toFixed(1)}/100</div>
       </div>
     `;
   }
+  if(hasSpeedMetrics) document.getElementById('metricsNote').style.display = 'flex';
 
   // Feedback
   const fbList = document.getElementById('feedbackList');
