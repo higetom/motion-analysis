@@ -14,9 +14,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Hiragino Sans',san
 .container{max-width:480px;margin:0 auto;padding:12px}
 
 /* Header */
-.header{text-align:center;padding:20px 0 10px}
-.header h1{font-size:22px;font-weight:700;color:var(--accent);letter-spacing:1px}
-.header p{font-size:11px;color:var(--mute);margin-top:4px}
+.header{text-align:center;padding:24px 0 16px}
+.header h1{font-size:26px;font-weight:800;background:linear-gradient(135deg,var(--accent),#fbbf24);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:2px}
+.header p{font-size:11px;color:var(--mute);margin-top:6px;letter-spacing:1px}
 
 /* Upload Area */
 .upload-area{border:2px dashed var(--border);border-radius:16px;padding:40px 20px;text-align:center;cursor:pointer;transition:all .3s;margin:16px 0}
@@ -52,51 +52,64 @@ input[type="file"]{display:none}
 .score-grade{font-size:14px;color:var(--mute)}
 
 /* Phase cards */
-.phase-cards{display:flex;gap:8px;overflow-x:auto;padding:8px 0;-webkit-overflow-scrolling:touch}
-.phase-card{min-width:120px;flex-shrink:0;background:var(--card);border:2px solid var(--border);border-radius:12px;padding:8px;text-align:center;cursor:pointer;transition:all .2s}
-.phase-card.active{border-color:var(--accent);box-shadow:0 0 12px rgba(245,158,11,.2)}
-.phase-card img{width:100%;border-radius:8px;object-fit:contain;max-height:180px}
-.phase-card .phase-name{font-size:10px;font-weight:600;margin-top:4px;white-space:nowrap}
-.phase-card .phase-time{font-size:9px;color:var(--mute)}
+.phase-cards{display:flex;gap:10px;overflow-x:auto;padding:10px 0;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory}
+.phase-card{min-width:130px;flex-shrink:0;background:var(--card);border:2px solid var(--border);border-radius:14px;padding:10px;text-align:center;cursor:pointer;transition:all .2s;scroll-snap-align:start}
+.phase-card.active{border-color:var(--accent);box-shadow:0 0 16px rgba(245,158,11,.25);transform:scale(1.02)}
+.phase-card img{width:100%;border-radius:10px;object-fit:contain;max-height:200px}
+.phase-card .phase-name{font-size:11px;font-weight:700;margin-top:6px;white-space:nowrap}
+.phase-card .phase-time{font-size:9px;color:var(--mute);margin-top:2px}
 
 /* Frame editor */
-.frame-editor{display:none;margin:12px 0;text-align:center}
+.frame-editor{display:none;margin:16px 0;text-align:center;background:var(--card);border-radius:14px;padding:12px;border:1px solid var(--border)}
 .frame-editor canvas{width:100%;max-width:480px;border-radius:10px;background:#000}
-.frame-nav{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:8px}
-.frame-nav button{background:var(--card);border:1px solid var(--border);color:var(--text);padding:8px 16px;border-radius:8px;font-size:13px;cursor:pointer}
-.frame-nav button:hover{border-color:var(--accent);color:var(--accent)}
-.frame-nav .frame-info{font-size:12px;color:var(--mute)}
+.frame-nav{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px}
+.frame-nav button{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 18px;border-radius:10px;font-size:14px;cursor:pointer;transition:all .2s;-webkit-tap-highlight-color:transparent}
+.frame-nav button:hover,.frame-nav button:active{border-color:var(--accent);color:var(--accent);background:rgba(245,158,11,.05)}
+.frame-nav .frame-info{font-size:11px;color:var(--mute);min-width:100px;text-align:center}
 
 /* Metric cards */
 .metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
-.metric-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px}
-.metric-name{font-size:11px;color:var(--mute);font-weight:600}
-.metric-value{font-size:20px;font-weight:700;margin:4px 0}
-.metric-unit{font-size:10px;color:var(--mute)}
-.metric-bar{height:4px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden}
-.metric-fill{height:100%;border-radius:2px;transition:width .4s}
-.metric-score{font-size:10px;color:var(--mute);margin-top:2px}
+.metric-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;transition:all .2s}
+.metric-name{font-size:11px;color:var(--mute);font-weight:600;margin-bottom:2px}
+.metric-value{font-size:22px;font-weight:700;margin:2px 0}
+.metric-unit{font-size:10px;color:var(--mute);margin-left:2px}
+.metric-bar{height:5px;background:var(--border);border-radius:3px;margin-top:6px;overflow:hidden}
+.metric-fill{height:100%;border-radius:3px;transition:width .6s ease}
+.metric-score{font-size:10px;color:var(--mute);margin-top:3px;text-align:right}
 
 /* Feedback */
-.section-title{font-size:15px;font-weight:700;margin:20px 0 8px;padding-left:4px}
-.fb-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin:8px 0}
-.fb-card.warning{border-left:3px solid var(--red)}
-.fb-card.info{border-left:3px solid var(--blue)}
-.fb-title{font-size:13px;font-weight:700}
-.fb-detail{font-size:12px;color:var(--mute);margin:4px 0}
-.fb-evidence{font-size:10px;color:var(--purple);font-style:italic}
-.fb-mechanism{font-size:10px;color:var(--mute);margin-top:4px;padding:4px 8px;background:rgba(255,255,255,.03);border-radius:4px}
+.section-title{font-size:14px;font-weight:700;margin:24px 0 10px;padding:8px 12px;background:var(--card);border-radius:10px;border-left:3px solid var(--accent)}
+.fb-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin:8px 0;cursor:pointer;transition:all .3s}
+.fb-card.warning{border-left:4px solid var(--red)}
+.fb-card.info{border-left:4px solid var(--blue)}
+.fb-header{display:flex;justify-content:space-between;align-items:center}
+.fb-title{font-size:13px;font-weight:700;flex:1}
+.fb-toggle{font-size:10px;color:var(--mute);transition:transform .3s}
+.fb-card.open .fb-toggle{transform:rotate(180deg)}
+.fb-summary{font-size:12px;color:var(--mute);margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.fb-card.open .fb-summary{-webkit-line-clamp:unset}
+.fb-body{max-height:0;overflow:hidden;transition:max-height .3s ease}
+.fb-card.open .fb-body{max-height:300px}
+.fb-detail{font-size:12px;color:var(--text);margin:8px 0;line-height:1.6}
+.fb-evidence{font-size:10px;color:var(--purple);font-style:italic;margin-top:4px}
+.fb-mechanism{font-size:11px;color:var(--mute);margin-top:6px;padding:8px 10px;background:rgba(255,255,255,.04);border-radius:8px;line-height:1.5}
 
 /* Exercise */
-.ex-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin:8px 0}
-.ex-name{font-size:13px;font-weight:700;color:var(--green)}
-.ex-name-en{font-size:10px;color:var(--mute)}
-.ex-detail{font-size:11px;color:var(--mute);margin:4px 0}
-.ex-spec{font-size:10px;color:var(--text)}
+.ex-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin:8px 0;transition:all .2s}
+.ex-name{font-size:14px;font-weight:700;color:var(--green)}
+.ex-name-en{font-size:10px;color:var(--mute);margin-top:1px}
+.ex-badge{display:inline-block;font-size:9px;padding:2px 8px;border-radius:20px;margin-top:4px;font-weight:600}
+.ex-badge.mobility{background:rgba(96,165,250,.15);color:var(--blue)}
+.ex-badge.strength{background:rgba(248,113,113,.15);color:var(--red)}
+.ex-badge.neuromuscular{background:rgba(167,139,250,.15);color:var(--purple)}
+.ex-badge.stability{background:rgba(16,185,129,.15);color:var(--green)}
+.ex-detail{font-size:12px;color:var(--mute);margin:6px 0;line-height:1.5}
+.ex-spec{font-size:11px;color:var(--text);padding:6px 10px;background:rgba(255,255,255,.03);border-radius:8px;margin-top:4px}
 
 /* Confirm button */
-.confirm-btn{display:block;width:100%;padding:14px;background:linear-gradient(135deg,var(--accent),#d97706);color:#000;font-size:15px;font-weight:700;border:none;border-radius:12px;cursor:pointer;margin:16px 0;text-align:center}
-.confirm-btn:hover{opacity:.9}
+.confirm-btn{display:block;width:100%;padding:16px;background:linear-gradient(135deg,var(--accent),#d97706);color:#000;font-size:15px;font-weight:800;border:none;border-radius:14px;cursor:pointer;margin:20px 0;text-align:center;letter-spacing:.5px;box-shadow:0 4px 15px rgba(245,158,11,.3);transition:all .2s}
+.confirm-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(245,158,11,.4)}
+.confirm-btn:active{transform:translateY(0)}
 .confirm-btn:disabled{opacity:.4;cursor:not-allowed}
 
 /* Footer */
@@ -666,6 +679,11 @@ function renderResults(scoreResult) {
   document.getElementById('scoreValue').textContent = total;
   document.getElementById('scoreGrade').textContent = grade;
   document.getElementById('scoreRing').style.setProperty('--pct', Math.min(total,100));
+  const colorMap = {green:'#10b981', accent:'#f59e0b', orange:'#fb923c', red:'#f87171'};
+  const scoreColorKey = total>=85?'green':total>=70?'accent':total>=50?'orange':'red';
+  const scoreColorVal = colorMap[scoreColorKey];
+  document.getElementById('scoreValue').style.color = scoreColorVal;
+  document.getElementById('scoreRing').style.background = `conic-gradient(${scoreColorVal} ${total*3.6}deg, var(--card) 0)`;
 
   // Phase cards
   const pcEl = document.getElementById('phaseCards');
@@ -707,12 +725,18 @@ function renderResults(scoreResult) {
   if(feedback.length===0){
     fbList.innerHTML = '<div style="font-size:12px;color:var(--green);text-align:center;padding:16px">✅ 大きな問題は検出されませんでした</div>';
   } else {
-    fbList.innerHTML = feedback.map(fb=>`
-      <div class="fb-card ${fb.severity}">
-        <div class="fb-title">${fb.severity==='warning'?'⚠️':'ℹ️'} ${fb.title}</div>
-        <div class="fb-detail">${fb.detail}</div>
-        <div class="fb-evidence">${fb.evidence||''}</div>
-        ${fb.mechanism?`<div class="fb-mechanism">${fb.mechanism}</div>`:''}
+    fbList.innerHTML = feedback.map((fb,idx)=>`
+      <div class="fb-card ${fb.severity}" onclick="this.classList.toggle('open')">
+        <div class="fb-header">
+          <div class="fb-title">${fb.severity==='warning'?'⚠️':'ℹ️'} ${fb.title}</div>
+          <div class="fb-toggle">▼</div>
+        </div>
+        <div class="fb-summary">${fb.detail.split('。')[0]}。</div>
+        <div class="fb-body">
+          <div class="fb-detail">${fb.detail}</div>
+          ${fb.evidence?`<div class="fb-evidence">📖 ${fb.evidence}</div>`:''}
+          ${fb.mechanism?`<div class="fb-mechanism">🔬 ${fb.mechanism}</div>`:''}
+        </div>
       </div>
     `).join('');
   }
@@ -727,10 +751,12 @@ function renderResults(scoreResult) {
     exList.innerHTML = [...exSet].map(key=>{
       const ex = EXERCISE_DB[key];
       if(!ex) return '';
+      const catClass = key.split('_')[1] || 'strength';
       return `
         <div class="ex-card">
           <div class="ex-name">${ex.name}</div>
-          <div class="ex-name-en">${ex.name_en} — ${ex.category}</div>
+          <div class="ex-name-en">${ex.name_en}</div>
+          <span class="ex-badge ${catClass}">${ex.category}</span>
           <div class="ex-detail">${ex.purpose}</div>
           <div class="ex-spec">📋 ${ex.sets}</div>
         </div>
