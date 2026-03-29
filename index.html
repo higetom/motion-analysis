@@ -82,6 +82,9 @@ input[type="file"]{display:none}
 .metric-fill{height:100%;border-radius:3px;transition:width .6s ease}
 .metric-score{font-size:10px;color:var(--mute);margin-top:3px;text-align:right}
 .metrics-note{font-size:10px;color:var(--mute);padding:8px 12px;margin:8px 0 0;background:rgba(245,158,11,.04);border-radius:8px;display:flex;align-items:flex-start;gap:6px;line-height:1.5}
+.metric-reliability{font-size:8px;padding:1px 5px;border-radius:8px;margin-left:4px}
+.metric-reliability.measured{background:rgba(16,185,129,.12);color:var(--green)}
+.metric-reliability.estimated{background:rgba(96,165,250,.12);color:var(--blue)}
 
 /* Feedback */
 .section-title{font-size:14px;font-weight:700;margin:28px 0 12px;padding:10px 14px;background:linear-gradient(135deg,var(--card),rgba(22,27,34,.8));border-radius:12px;border-left:3px solid var(--accent);display:flex;align-items:center;gap:8px}
@@ -131,7 +134,7 @@ input[type="file"]{display:none}
 .loading-text{margin-top:12px;font-size:13px;color:var(--mute)}
 
 @media(max-width:480px){
-  .metrics-grid{grid-template-columns:1fr}
+  .metrics-grid{grid-template-columns:1fr 1fr}
   .container{padding:8px}
 }
 </style>
@@ -254,18 +257,24 @@ const ARM_IDX = {
 };
 
 const NORMATIVE = {
-  "踏み出し膝屈曲": {pro:[30,50], amateur:[15,65], unit:"°", better:"range"},
-  "軸足膝屈曲": {pro:[40,65], amateur:[25,80], unit:"°", better:"range"},
-  "体幹傾き": {pro:[25,40], amateur:[15,55], unit:"°", better:"range"},
-  "ストライド長": {pro:[180,260], amateur:[120,320], unit:"%", better:"range"},
-  "並進運動速度": {pro:[7,15], amateur:[3,22], unit:"km/h", better:"higher"},
-  "腕振り速度": {pro:[50,100], amateur:[25,140], unit:"km/h", better:"higher"},
-  "腕振り効率": {pro:[4.0,8.0], amateur:[2.0,12.0], unit:"倍", better:"range"},
+  "踏み出し膝屈曲":   {pro:[30,50], amateur:[15,65], unit:"°", better:"range", ref:"Werner et al. (2002)", phase:"④アクセラレーション"},
+  "軸足膝屈曲":       {pro:[40,65], amateur:[25,80], unit:"°", better:"range", ref:"Fleisig et al. (1995)", phase:"②前期コッキング"},
+  "体幹傾き":         {pro:[25,40], amateur:[15,55], unit:"°", better:"range", ref:"Stodden et al. (2001)", phase:"④アクセラレーション"},
+  "ストライド長":     {pro:[80,95], amateur:[60,110], unit:"%身長", better:"range", ref:"Werner et al. (2008)", phase:"②前期コッキング"},
+  "骨盤体幹分離角":   {pro:[40,60], amateur:[20,75], unit:"°", better:"higher", ref:"Stodden et al. (2006)", phase:"②前期コッキング"},
+  "肘屈曲角":         {pro:[80,100], amateur:[60,120], unit:"°", better:"range", ref:"Fleisig et al. (1999)", phase:"③後期コッキング"},
+  "並進運動速度":     {pro:[7,15], amateur:[3,22], unit:"km/h", better:"higher", ref:"Stodden et al. (2001)", phase:"全体"},
+  "腕振り速度":       {pro:[50,100], amateur:[25,140], unit:"km/h", better:"higher", ref:"Fleisig et al. (1999)", phase:"全体"},
+  "体幹回旋速度":     {pro:[800,1400], amateur:[400,1800], unit:"°/s", better:"higher", ref:"Stodden et al. (2006)", phase:"全体"},
+  "前脚ブロック":     {pro:[300,600], amateur:[100,800], unit:"°/s", better:"higher", ref:"Matsuo et al. (2001)", phase:"全体"},
+  "腕振り効率":       {pro:[4.0,8.0], amateur:[2.0,12.0], unit:"倍", better:"range", ref:"運動連鎖指標", phase:"全体"},
 };
 
 const WEIGHTS = {
-  "踏み出し膝屈曲":0.18, "軸足膝屈曲":0.12, "体幹傾き":0.15,
-  "ストライド長":0.15, "並進運動速度":0.15, "腕振り速度":0.15, "腕振り効率":0.10
+  "骨盤体幹分離角":0.14, "体幹回旋速度":0.10, "腕振り速度":0.12,
+  "並進運動速度":0.10, "前脚ブロック":0.08, "踏み出し膝屈曲":0.12,
+  "軸足膝屈曲":0.08, "体幹傾き":0.10, "ストライド長":0.08,
+  "肘屈曲角":0.06, "腕振り効率":0.02
 };
 
 const EXERCISE_DB = {
@@ -287,6 +296,8 @@ const EXERCISE_DB = {
   "体幹回転力_strength":{name:"ランドマインローテーション",name_en:"Landmine Rotation",category:"筋力",sets:"3set×各側8-10回",purpose:"体幹の回転パワーを強化"},
   "肩甲骨制御_neuromuscular":{name:"I-Y-T-W肩関節運動",name_en:"I-Y-T-W Shoulder Series",category:"神経筋",sets:"2-3set×各10-15回",purpose:"肩甲骨周囲と回旋筋腱板の動的安定性向上"},
   "コッキング位置_neuromuscular":{name:"スローターバンドドリル",name_en:"Thrower's Band Drill",category:"神経筋",sets:"3set×15-20回",purpose:"90/90投球位置での肩腕配置を神経学習"},
+  "股関節内旋_mobility":{name:"90/90ヒップストレッチ",name_en:"90/90 Hip Stretch",category:"モビリティ",sets:"2set×各側30-45秒",purpose:"股関節内旋の可動性を向上→骨盤先行回旋の可動域確保"},
+  "前脚ブロック_neuromuscular":{name:"前脚ブロックドリル",name_en:"Lead Leg Block Drill",category:"神経筋",sets:"3set×8-10回",purpose:"着地後の前脚伸展パターンを学習→並進→回転エネルギー変換を最適化"},
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -397,6 +408,22 @@ function calcAngles(lm, arm) {
   const rawAk = calcAngle3D(vec3(lm,idx.AH),vec3(lm,idx.AK),vec3(lm,idx.AA));
   a["軸足膝屈曲"]=+Math.max(0,180-rawAk).toFixed(1);
 
+  // Hip-Shoulder Separation (骨盤-体幹分離角)
+  const hipDx = lm[24].x - lm[23].x, hipDz = lm[24].z - lm[23].z;
+  const shDx = lm[12].x - lm[11].x, shDz = lm[12].z - lm[11].z;
+  const hipAng = Math.atan2(hipDz, hipDx);
+  const shAng = Math.atan2(shDz, shDx);
+  let hss = (hipAng - shAng) * 180 / Math.PI;
+  if(arm === 'left') hss = -hss;
+  hss = Math.abs(hss);
+  if(hss > 180) hss = 360 - hss;
+  if(hss > 90) hss = 180 - hss;
+  a["骨盤体幹分離角"] = +hss.toFixed(1);
+
+  // Elbow flexion (shoulder-elbow-wrist angle)
+  const rawElbow = calcAngle3D(vec3(lm,idx.S), vec3(lm,idx.E), vec3(lm,idx.W));
+  a["肘屈曲角"] = +rawElbow.toFixed(1);
+
   return a;
 }
 
@@ -411,14 +438,16 @@ function calcExtraMetrics(lm, arm) {
   const horiz=Math.sqrt(ve[0]**2+ve[2]**2);
   m["アームスロット"]=+(Math.atan2(horiz,Math.max(Math.abs(ve[1]),1e-8))*180/Math.PI).toFixed(1);
 
-  // Stride length (3D)
+  // Stride length as % of estimated body height
   const ra=[lm[27].x,lm[27].y,lm[27].z];
   const la=[lm[28].x,lm[28].y,lm[28].z];
   const sm=[(lm[11].x+lm[12].x)/2,(lm[11].y+lm[12].y)/2,(lm[11].z+lm[12].z)/2];
   const hm=[(lm[23].x+lm[24].x)/2,(lm[23].y+lm[24].y)/2,(lm[23].z+lm[24].z)/2];
   const stride3d=norm([ra[0]-la[0],ra[1]-la[1],ra[2]-la[2]]);
   const trunk3d=norm([sm[0]-hm[0],sm[1]-hm[1],sm[2]-hm[2]])+1e-8;
-  m["ストライド長"]=+(stride3d/trunk3d*100).toFixed(1);
+  // Estimated height = trunk × 2.8 (trunk is ~35% of height)
+  const estHeight = trunk3d * 2.8;
+  m["ストライド長"]=+(stride3d/estHeight*100).toFixed(1);
 
   return m;
 }
@@ -585,6 +614,46 @@ function calcArmEfficiency(frames, arm, fps=30) {
   return +(armSpd/trans).toFixed(1);
 }
 
+function calcTrunkRotVelocity(frames, arm, fps=30) {
+  if(frames.length<5) return 0;
+  const wlms = frames.map(f=>f.worldLandmarks);
+  // Shoulder line angle in XZ plane (world coords)
+  const shAngles = wlms.map(l => {
+    const dx = l[12].x - l[11].x;
+    const dz = l[12].z - l[11].z;
+    return Math.atan2(dz, dx);
+  });
+  // Unwrap angles to avoid discontinuity
+  const unwrapped = [shAngles[0]];
+  for(let i=1;i<shAngles.length;i++){
+    let diff = shAngles[i] - shAngles[i-1];
+    while(diff > Math.PI) diff -= 2*Math.PI;
+    while(diff < -Math.PI) diff += 2*Math.PI;
+    unwrapped.push(unwrapped[i-1] + diff);
+  }
+  const smoothed = smooth(unwrapped, 3);
+  const angVel = gradient(smoothed).map(v => Math.abs(v * fps * 180 / Math.PI)); // deg/s
+  const sorted = angVel.slice().sort((a,b)=>a-b);
+  const p90 = sorted[Math.floor(sorted.length*0.9)];
+  return +p90.toFixed(0);
+}
+
+function calcLeadLegBlock(frames, arm, fps=30) {
+  if(frames.length<5) return 0;
+  const idx = ARM_IDX[arm];
+  // Lead knee extension velocity (deg/s) - how fast the front leg firms up
+  const kneeAngles = frames.map(f => {
+    const raw = calcAngle3D(vec3(f.landmarks,idx.SH),vec3(f.landmarks,idx.SK),vec3(f.landmarks,idx.SA));
+    return 180 - raw; // flexion angle
+  });
+  const smoothed = smooth(kneeAngles, 3);
+  // Extension = negative gradient (angle decreasing = extending)
+  const extVel = gradient(smoothed).map(v => -v * fps); // positive = extending, deg/s
+  const sorted = extVel.slice().sort((a,b)=>a-b);
+  const p90 = sorted[Math.floor(sorted.length*0.9)];
+  return +Math.max(0, p90).toFixed(0);
+}
+
 // ═══════════════════════════════════════════════════════════════
 // Scoring
 // ═══════════════════════════════════════════════════════════════
@@ -613,6 +682,8 @@ function computeScore() {
     ["踏み出し膝屈曲","④アクセラレーション","angles"],
     ["軸足膝屈曲","②前期コッキング","angles"],
     ["体幹傾き","④アクセラレーション","angles"],
+    ["骨盤体幹分離角","②前期コッキング","angles"],
+    ["肘屈曲角","③後期コッキング","angles"],
     ["ストライド長","②前期コッキング","extra"],
   ];
   for(const [name, phaseName, dataType] of phaseMetrics){
@@ -625,10 +696,12 @@ function computeScore() {
     components[name] = {score:+score.toFixed(1), raw:+val.toFixed(1), unit:NORMATIVE[name]?.unit||"", phase:phaseName};
   }
 
-  // Motion metrics (whole sequence) — use globally detected fps
+  // Motion metrics (whole sequence)
   motionMetrics = {
     "並進運動速度": calcTranslationSpeed(allFrames, selectedArm, detectedFps),
     "腕振り速度": calcArmSpeed(allFrames, selectedArm, detectedFps),
+    "体幹回旋速度": calcTrunkRotVelocity(allFrames, selectedArm, detectedFps),
+    "前脚ブロック": calcLeadLegBlock(allFrames, selectedArm, detectedFps),
     "腕振り効率": calcArmEfficiency(allFrames, selectedArm, detectedFps),
   };
   for(const [name, raw] of Object.entries(motionMetrics)){
@@ -655,46 +728,201 @@ function generateFeedback(scoreResult) {
   const fb = [];
   const c = scoreResult.components;
 
-  // Stride
+  // === Hip-Shoulder Separation ===
+  const hss = c["骨盤体幹分離角"]?.raw || 0;
+  if(hss < 20) fb.push({
+    severity:'warning', title:'骨盤-体幹分離角が不足',
+    detail:`②前期コッキングでの骨盤-体幹分離角が${hss}°（プロ水準: 40-60°）。骨盤が先行回旋せずに上半身と一体で回転しており、運動連鎖のエネルギー伝達効率が大幅に低下しています。球速低下の最大要因であると同時に、肩・肘への代償負荷を増大させます。`,
+    evidence:'Stodden et al. (2006), Seroyer et al. (2010)',
+    mechanism:'骨盤先行回旋不足 → 体幹の弾性エネルギー蓄積不足 → 腕だけで加速 → 球速低下＋UCL負荷増',
+    exercises:['骨盤分離_neuromuscular','体幹回転力_strength','股関節可動性_mobility']
+  });
+  else if(hss < 40) fb.push({
+    severity:'info', title:'骨盤-体幹分離角に伸びしろあり',
+    detail:`②前期コッキングでの骨盤-体幹分離角が${hss}°（プロ水準: 40-60°）。骨盤の先行回旋はあるものの、まだ改善余地があります。分離角が10°増えると球速が約2-3km/h向上するとの報告があります。`,
+    evidence:'Stodden et al. (2006)',
+    mechanism:'分離角増加 → SSC(伸張-短縮サイクル)効率向上 → 体幹回旋速度UP → 球速向上',
+    exercises:['骨盤分離_neuromuscular','股関節内旋_mobility','体幹回転力_strength']
+  });
+
+  // === Elbow Flexion at MER ===
+  const ef = c["肘屈曲角"]?.raw || 0;
+  if(ef > 0) {
+    if(ef < 60) fb.push({
+      severity:'warning', title:'MER時の肘屈曲が不足',
+      detail:`③後期コッキングでの肘屈曲角が${ef}°（プロ水準: 80-100°）。肘が伸びすぎた状態でのコッキングは、内側側副靭帯（UCL）への牽引ストレスを増大させます。`,
+      evidence:'Fleisig et al. (1999)',
+      mechanism:'肘伸展位でのMER → UCL伸張ストレス増大 → 内側型肘障害リスク',
+      exercises:['コッキング位置_neuromuscular','肩甲骨制御_neuromuscular']
+    });
+    else if(ef > 120) fb.push({
+      severity:'info', title:'MER時の肘屈曲が過度',
+      detail:`③後期コッキングでの肘屈曲角が${ef}°（プロ水準: 80-100°）。肘が曲がりすぎており、加速相での肘伸展距離が長くなりエネルギー効率が低下します。`,
+      evidence:'Fleisig et al. (1999)',
+      exercises:['コッキング位置_neuromuscular','肩甲骨制御_neuromuscular']
+    });
+  }
+
+  // === Stride Length ===
   const stride = c["ストライド長"]?.raw || 0;
-  if(stride<120) fb.push({severity:'warning',title:'ストライド長が短い',detail:`②前期コッキングフェーズでのストライド長が体幹比${stride}%と短い（プロ水準: 180-260%）。ストライドが短いと下半身からのエネルギー伝達距離が不足し、その分を肩・肘で補おうとするため故障リスクが上がります。股関節の可動性と下肢の推進力を高めましょう。`,evidence:'Werner et al. (2008)',mechanism:'短いストライド → エネルギー伝達距離短縮 → 肩への代償負荷増加',exercises:['股関節可動性_mobility','下肢パワー_strength']});
-  else if(stride<180) fb.push({severity:'info',title:'ストライド長に伸びしろあり',detail:`②前期コッキングフェーズでのストライド長が体幹比${stride}%（プロ水準: 180-260%）。もう少し大きなストライドが取れると、地面反力をより効率的にボールに伝えられます。股関節の柔軟性と脚力アップが鍵です。`,evidence:'Werner et al. (2008)',exercises:['股関節可動性_mobility','下肢パワー_strength','下肢パワー伝達_neuromuscular']});
-  else if(stride>320) fb.push({severity:'warning',title:'ストライド長が長すぎる',detail:`②前期コッキングフェーズでのストライド長が体幹比${stride}%と過大。着地が不安定になり体幹の制御が難しくなります。`,evidence:'Werner et al. (2008)',exercises:['着地安定性_neuromuscular','体幹制御_stability']});
+  if(stride < 60) fb.push({
+    severity:'warning', title:'ストライド長が短い',
+    detail:`②前期コッキングでのストライド長が推定身長比${stride}%（プロ水準: 80-95%身長）。ストライドが短いと並進運動のエネルギーが不足し、肩・肘に頼った投球になります。`,
+    evidence:'Werner et al. (2008), Fleisig et al. (1996)',
+    mechanism:'短ストライド → 並進運動距離不足 → 腕への依存増 → 肩肘障害リスク上昇',
+    exercises:['股関節可動性_mobility','下肢パワー_strength','下肢パワー伝達_neuromuscular']
+  });
+  else if(stride < 80) fb.push({
+    severity:'info', title:'ストライド長に伸びしろあり',
+    detail:`②前期コッキングでのストライド長が推定身長比${stride}%（プロ水準: 80-95%身長）。下肢の推進力と股関節柔軟性の改善で、より効率的なエネルギー伝達が可能です。`,
+    evidence:'Werner et al. (2008)',
+    exercises:['股関節可動性_mobility','下肢パワー_strength']
+  });
+  else if(stride > 110) fb.push({
+    severity:'warning', title:'ストライド長が過大',
+    detail:`ストライド長が推定身長比${stride}%と過大。着地の衝撃制御が困難になり、体幹・腕の制御に支障が出ます。`,
+    evidence:'Werner et al. (2008)',
+    exercises:['着地安定性_neuromuscular','体幹制御_stability']
+  });
 
-  // Lead knee
+  // === Lead knee flexion ===
   const lk = c["踏み出し膝屈曲"]?.raw || 0;
-  if(lk<15) fb.push({severity:'warning',title:'踏み出し膝が伸び過ぎ',detail:`④アクセラレーションフェーズでの踏み出し膝屈曲が${lk}°と小さすぎます（プロ水準: 30-50°）。膝が伸びきった状態で着地すると衝撃が直接腰と肩に伝わり、故障リスクが大きく上がります。着地時に膝をしっかり曲げるドリルを行いましょう。`,evidence:'Werner et al. (2002)',exercises:['膝屈曲力_strength','着地制動_neuromuscular']});
-  else if(lk<30) fb.push({severity:'info',title:'踏み出し膝屈曲に伸びしろあり',detail:`④アクセラレーションフェーズでの踏み出し膝屈曲が${lk}°（プロ水準: 30-50°）。もう少し膝を曲げて着地することで衝撃吸収力が上がり、球速アップにもつながります。`,evidence:'Werner et al. (2002)',exercises:['膝屈曲力_strength','着地安定性_neuromuscular']});
-  else if(lk>65) fb.push({severity:'info',title:'踏み出し膝屈曲が過度',detail:`④アクセラレーションフェーズでの踏み出し膝屈曲が${lk}°と過度。膝の曲がりすぎは制動力の不足を意味し、エネルギーが逃げています。`,evidence:'Werner et al. (2002)',exercises:['着地安定性_neuromuscular','下肢パワー伝達_neuromuscular']});
+  if(lk<15) fb.push({
+    severity:'warning', title:'踏み出し膝が伸びすぎ',
+    detail:`④アクセラレーションでの踏み出し膝屈曲が${lk}°（プロ水準: 30-50°）。膝が伸びきった着地は地面反力の衝撃が直接腰・肩に伝わり、故障リスクが著しく上昇します。また、エネルギーの「ブレーキ変換」が起きず球速も低下します。`,
+    evidence:'Werner et al. (2002), MacWilliams et al. (1998)',
+    mechanism:'膝伸展位着地 → 衝撃吸収不良 → 腰椎・肩へのストレス集中',
+    exercises:['膝屈曲力_strength','着地制動_neuromuscular','下肢パワー伝達_neuromuscular']
+  });
+  else if(lk<30) fb.push({
+    severity:'info', title:'踏み出し膝屈曲に改善余地',
+    detail:`④アクセラレーションでの踏み出し膝屈曲が${lk}°（プロ水準: 30-50°）。適度な膝屈曲は前脚ブロックの前段階として重要です。`,
+    evidence:'Werner et al. (2002)',
+    exercises:['膝屈曲力_strength','着地安定性_neuromuscular']
+  });
+  else if(lk>65) fb.push({
+    severity:'info', title:'踏み出し膝が過度に屈曲',
+    detail:`④アクセラレーションでの踏み出し膝屈曲が${lk}°（プロ水準: 30-50°）。膝が曲がりすぎると前脚ブロックが形成されず、運動エネルギーが上半身に伝達されません。`,
+    evidence:'Werner et al. (2002)',
+    exercises:['着地安定性_neuromuscular','前脚ブロック_neuromuscular']
+  });
 
-  // Rear knee
+  // === Rear knee ===
   const rk = c["軸足膝屈曲"]?.raw || 0;
-  if(rk<25) fb.push({severity:'warning',title:'軸足膝が伸び過ぎ',detail:`②前期コッキングフェーズでの軸足膝屈曲が${rk}°と小さすぎます（プロ水準: 40-65°）。軸足が伸びきっていると下半身のパワーを使えず、腕に頼った投球になります。`,evidence:'Fleisig et al. (1995)',exercises:['軸足膝屈曲_strength','下肢パワー伝達_neuromuscular']});
-  else if(rk<40) fb.push({severity:'info',title:'軸足膝屈曲に伸びしろあり',detail:`②前期コッキングフェーズでの軸足膝屈曲が${rk}°（プロ水準: 40-65°）。軸足をもう少し曲げて「タメ」を作ることで、より大きなパワーを生み出せます。`,evidence:'Fleisig et al. (1995)',exercises:['軸足膝屈曲_strength','下肢パワー_strength']});
-  else if(rk>80) fb.push({severity:'info',title:'軸足膝屈曲が過度',detail:`②前期コッキングフェーズでの軸足膝屈曲が${rk}°と過度。曲げすぎると安定性が下がります。`,evidence:'Fleisig et al. (1995)',exercises:['着地安定性_neuromuscular','バランス訓練_neuromuscular']});
+  if(rk<25) fb.push({
+    severity:'warning', title:'軸足膝の屈曲が不足',
+    detail:`②前期コッキングでの軸足膝屈曲が${rk}°（プロ水準: 40-65°）。軸足が伸びきっていると下肢のパワー発揮が制限されます。`,
+    evidence:'Fleisig et al. (1995)',
+    mechanism:'軸足伸展位 → 下肢パワー発揮不足 → 並進運動エネルギー減少',
+    exercises:['軸足膝屈曲_strength','下肢パワー_strength']
+  });
+  else if(rk<40) fb.push({
+    severity:'info', title:'軸足膝屈曲に改善余地',
+    detail:`②前期コッキングでの軸足膝屈曲が${rk}°（プロ水準: 40-65°）。もう少し「タメ」を作ることで推進力が向上します。`,
+    evidence:'Fleisig et al. (1995)',
+    exercises:['軸足膝屈曲_strength','下肢パワー_strength']
+  });
 
-  // Trunk tilt
+  // === Trunk tilt ===
   const tt = c["体幹傾き"]?.raw || 0;
-  if(tt<15) fb.push({severity:'info',title:'体幹傾きが小さい',detail:`④アクセラレーションフェーズでの体幹傾きが${tt}°と小さい（プロ水準: 25-40°）。体幹の前傾が足りないと地面反力を活かしきれません。`,evidence:'Stodden et al. (2001)',exercises:['体幹伸展_mobility','地面反力活用_neuromuscular']});
-  else if(tt<25) fb.push({severity:'info',title:'体幹傾きにやや伸びしろあり',detail:`④アクセラレーションフェーズでの体幹傾きが${tt}°（プロ水準: 25-40°）。もう少し前傾を深くすることでリリースポイントが前に出て、球速と制球が向上します。`,evidence:'Stodden et al. (2001)',exercises:['体幹伸展_mobility','コアトレーニング_strength']});
-  else if(tt>55) fb.push({severity:'warning',title:'体幹傾きが過度',detail:`④アクセラレーションフェーズでの体幹傾きが${tt}°と過度。前傾しすぎは腰椎への負荷が増加します。`,evidence:'Stodden et al. (2001)',exercises:['体幹安定化_stability','バランス訓練_neuromuscular']});
+  if(tt<15) fb.push({
+    severity:'info', title:'体幹前傾が小さい',
+    detail:`④アクセラレーションでの体幹傾きが${tt}°（プロ水準: 25-40°）。前傾不足はリリースポイントが後方になり、制球・球速の両方に影響します。`,
+    evidence:'Stodden et al. (2001)',
+    exercises:['体幹伸展_mobility','地面反力活用_neuromuscular']
+  });
+  else if(tt<25) fb.push({
+    severity:'info', title:'体幹前傾にやや改善余地',
+    detail:`④アクセラレーションでの体幹傾きが${tt}°（プロ水準: 25-40°）。リリースポイントを前に出すことで、より効果的なボールリリースが可能です。`,
+    evidence:'Stodden et al. (2001)',
+    exercises:['体幹伸展_mobility','コアトレーニング_strength']
+  });
+  else if(tt>55) fb.push({
+    severity:'warning', title:'体幹前傾が過度',
+    detail:`④アクセラレーションでの体幹傾きが${tt}°と過度。腰椎への負荷が増大し、腰痛リスクが上がります。`,
+    evidence:'Stodden et al. (2001)',
+    exercises:['体幹安定化_stability','コアトレーニング_strength']
+  });
 
-  // Translation speed
+  // === Translation speed ===
   const ts = c["並進運動速度"]?.raw || 0;
-  if(ts<3) fb.push({severity:'warning',title:'並進運動速度が低い',detail:`並進運動の最高速度が${ts}km/hと低水準（プロ水準: 7-15km/h）。体重移動が遅く、腕の振りだけでボールを投げている状態です。下半身の推進力を高めましょう。`,evidence:'Stodden et al. (2001)',exercises:['下肢パワー_strength','地面反力活用_neuromuscular']});
-  else if(ts<7) fb.push({severity:'info',title:'並進運動速度に伸びしろあり',detail:`並進運動の最高速度が${ts}km/h（プロ水準: 7-15km/h）。体重移動をもっと速くすることで、そのエネルギーが腕→ボールに伝わり球速アップにつながります。`,evidence:'Stodden et al. (2001)',exercises:['下肢パワー_strength','下肢パワー伝達_neuromuscular','股関節可動性_mobility']});
+  if(ts < 3) fb.push({
+    severity:'warning', title:'並進運動速度が低い',
+    detail:`並進運動の最高速度が${ts}km/h（プロ水準: 7-15km/h）。下半身主導の体重移動が不十分で、腕に依存した投球パターンです。`,
+    evidence:'Stodden et al. (2001)',
+    mechanism:'並進運動不足 → 運動エネルギー不足 → 腕の筋力で補償 → 肩肘障害リスク',
+    exercises:['下肢パワー_strength','地面反力活用_neuromuscular','下肢パワー伝達_neuromuscular']
+  });
+  else if(ts < 7) fb.push({
+    severity:'info', title:'並進運動速度に伸びしろあり',
+    detail:`並進運動の最高速度が${ts}km/h（プロ水準: 7-15km/h）。体重移動のスピードアップが球速向上に直結します。`,
+    evidence:'Stodden et al. (2001)',
+    exercises:['下肢パワー_strength','下肢パワー伝達_neuromuscular']
+  });
 
-  // Arm speed
+  // === Arm speed ===
   const as = c["腕振り速度"]?.raw || 0;
-  if(as<25) fb.push({severity:'warning',title:'腕振り速度が低い',detail:`腕振りの最高速度が${as}km/hと低水準（プロ水準: 50-100km/h）。ボールスピードに直結する指標です。`,evidence:'Fleisig et al. (1999)',exercises:['肩甲骨制御_neuromuscular','コッキング位置_neuromuscular']});
-  else if(as<50) fb.push({severity:'info',title:'腕振り速度に伸びしろあり',detail:`腕振りの最高速度が${as}km/h（プロ水準: 50-100km/h）。体幹の回旋力と肩甲骨の動的安定性を高めることで改善できます。`,evidence:'Fleisig et al. (1999)',exercises:['骨盤分離_neuromuscular','体幹回転力_strength','肩甲骨制御_neuromuscular']});
+  if(as < 25) fb.push({
+    severity:'warning', title:'腕振り速度が低い',
+    detail:`腕振りの最高速度が${as}km/h（プロ水準: 50-100km/h）。ボール速度に直結する指標です。体幹回旋力の改善が最も効果的です。`,
+    evidence:'Fleisig et al. (1999)',
+    exercises:['肩甲骨制御_neuromuscular','体幹回転力_strength','骨盤分離_neuromuscular']
+  });
+  else if(as < 50) fb.push({
+    severity:'info', title:'腕振り速度に伸びしろあり',
+    detail:`腕振りの最高速度が${as}km/h（プロ水準: 50-100km/h）。骨盤-体幹の分離と体幹回旋力の強化で改善できます。`,
+    evidence:'Fleisig et al. (1999)',
+    exercises:['骨盤分離_neuromuscular','体幹回転力_strength']
+  });
 
-  // Arm efficiency
+  // === Trunk rotation velocity ===
+  const trv = c["体幹回旋速度"]?.raw || 0;
+  if(trv < 400) fb.push({
+    severity:'warning', title:'体幹回旋速度が低い',
+    detail:`体幹の最高回旋速度が${trv}°/s（プロ水準: 800-1400°/s）。体幹が十分に高速回旋していないと、腕の加速に必要なエネルギーが不足します。`,
+    evidence:'Stodden et al. (2006)',
+    mechanism:'体幹回旋速度不足 → 近位→遠位のエネルギー伝達不足 → 末端速度低下',
+    exercises:['体幹回転力_strength','骨盤分離_neuromuscular']
+  });
+  else if(trv < 800) fb.push({
+    severity:'info', title:'体幹回旋速度に改善余地',
+    detail:`体幹の最高回旋速度が${trv}°/s（プロ水準: 800-1400°/s）。コア筋力と回旋パワーの強化で向上可能です。`,
+    evidence:'Stodden et al. (2006)',
+    exercises:['体幹回転力_strength','骨盤分離_neuromuscular','地面反力活用_neuromuscular']
+  });
+
+  // === Lead leg block ===
+  const llb = c["前脚ブロック"]?.raw || 0;
+  if(llb < 100) fb.push({
+    severity:'warning', title:'前脚ブロックが不十分',
+    detail:`前脚の膝伸展速度が${llb}°/s（プロ水準: 300-600°/s）。前脚ブロックは運動連鎖の最終段階で、ここが弱いと体幹→腕へのエネルギー伝達が大幅に低下します。`,
+    evidence:'Matsuo et al. (2001), MacWilliams et al. (1998)',
+    mechanism:'前脚ブロック不足 → 並進エネルギーの回転変換不良 → 球速低下',
+    exercises:['膝屈曲力_strength','着地制動_neuromuscular','下肢パワー伝達_neuromuscular']
+  });
+  else if(llb < 300) fb.push({
+    severity:'info', title:'前脚ブロックに伸びしろあり',
+    detail:`前脚の膝伸展速度が${llb}°/s（プロ水準: 300-600°/s）。前脚の「突っ張り」を強化することで、並進運動エネルギーを回転エネルギーに効率的に変換できます。`,
+    evidence:'Matsuo et al. (2001)',
+    exercises:['膝屈曲力_strength','着地安定性_neuromuscular']
+  });
+
+  // === Arm efficiency (kinetic chain) ===
   const ae = c["腕振り効率"]?.raw || 0;
-  if(ae>0.1){
-    if(ae>10) fb.push({severity:'warning',title:'腕振り効率が高すぎる（腕依存傾向）',detail:`腕振り効率が${ae}倍と高く、腕だけで投げている可能性。`,evidence:'運動連鎖効率指標',exercises:['下肢パワー_strength','骨盤分離_neuromuscular','地面反力活用_neuromuscular']});
-    else if(ae<2.5) fb.push({severity:'info',title:'腕振り効率が低い',detail:`腕振り効率が${ae}倍と低め。`,evidence:'運動連鎖効率指標',exercises:['骨盤分離_neuromuscular','体幹回転力_strength']});
-    else if(ae<4.0) fb.push({severity:'info',title:'腕振り効率に伸びしろあり',detail:`腕振り効率が${ae}倍。プロ水準（4.0-7.0倍）未満。`,evidence:'運動連鎖効率指標',exercises:['骨盤分離_neuromuscular','体幹回転力_strength','肩甲骨制御_neuromuscular']});
+  if(ae > 0.1) {
+    if(ae > 12) fb.push({
+      severity:'warning', title:'運動連鎖効率に問題あり（腕依存）',
+      detail:`腕振り効率が${ae}倍と極端に高く、下半身→体幹のエネルギー伝達が不十分で腕に過度に依存しています。`,
+      evidence:'運動連鎖効率指標',
+      mechanism:'低い並進速度+高い腕振り→腕の筋力依存→肩肘障害リスク増大',
+      exercises:['下肢パワー_strength','骨盤分離_neuromuscular','地面反力活用_neuromuscular']
+    });
+    else if(ae < 2.0) fb.push({
+      severity:'info', title:'運動連鎖効率が低い',
+      detail:`腕振り効率が${ae}倍と低め。腕の加速が並進運動に対して小さく、エネルギー変換効率に改善余地があります。`,
+      evidence:'運動連鎖指標',
+      exercises:['体幹回転力_strength','骨盤分離_neuromuscular']
+    });
   }
 
   return fb;
@@ -740,11 +968,13 @@ function renderResults(scoreResult) {
   mg.innerHTML = '';
   let hasSpeedMetrics = false;
   for(const [name, data] of Object.entries(components)){
-    if(['並進運動速度','腕振り速度'].includes(name)) hasSpeedMetrics = true;
+    if(['並進運動速度','腕振り速度','体幹回旋速度','前脚ブロック'].includes(name)) hasSpeedMetrics = true;
     const color = data.score>=85?'var(--green)':data.score>=50?'var(--accent)':'var(--red)';
+    const reliability = data.phase === '全体' ? '推定' : '実測';
+    const reliClass = data.phase === '全体' ? 'estimated' : 'measured';
     mg.innerHTML += `
       <div class="metric-card">
-        <div class="metric-name">${name}${data.phase?` <span class="metric-phase">${data.phase}</span>`:''}</div>
+        <div class="metric-name">${name}<span class="metric-phase">${data.phase||''}</span><span class="metric-reliability ${reliClass}">${reliability}</span></div>
         <div class="metric-value" style="color:${color}">${data.raw}<span class="metric-unit">${data.unit}</span></div>
         <div class="metric-bar"><div class="metric-fill" style="width:${Math.min(data.score,100)}%;background:${color}"></div></div>
         <div class="metric-score">${data.score.toFixed(1)}/100</div>
