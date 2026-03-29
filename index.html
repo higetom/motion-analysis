@@ -55,7 +55,7 @@ input[type="file"]{display:none}
 .phase-cards{display:flex;gap:8px;overflow-x:auto;padding:8px 0;-webkit-overflow-scrolling:touch}
 .phase-card{min-width:120px;flex-shrink:0;background:var(--card);border:2px solid var(--border);border-radius:12px;padding:8px;text-align:center;cursor:pointer;transition:all .2s}
 .phase-card.active{border-color:var(--accent);box-shadow:0 0 12px rgba(245,158,11,.2)}
-.phase-card img{width:100%;border-radius:8px;aspect-ratio:9/16;object-fit:cover}
+.phase-card img{width:100%;border-radius:8px;object-fit:contain;max-height:180px}
 .phase-card .phase-name{font-size:10px;font-weight:600;margin-top:4px;white-space:nowrap}
 .phase-card .phase-time{font-size:9px;color:var(--mute)}
 
@@ -926,7 +926,9 @@ async function processVideo() {
 
     const vw = videoEl.videoWidth || 640;
     const vh = videoEl.videoHeight || 360;
-    const scale = vw > 640 ? 640 / vw : 1;
+    // 最大辺640pxにリサイズ（縦横どちらにも対応）
+    const maxDim = 640;
+    const scale = Math.max(vw, vh) > maxDim ? maxDim / Math.max(vw, vh) : 1;
     drawCanvas.width  = Math.round(vw * scale);
     drawCanvas.height = Math.round(vh * scale);
 
