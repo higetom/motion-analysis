@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Re'forma — 投球動作分析</title>
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiUmUnZm9ybWEiLCJzaG9ydF9uYW1lIjoiUmVmb3JtYSIsInN0YXJ0X3VybCI6Ii4iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImJhY2tncm91bmRfY29sb3IiOiIjMGQxMTE3IiwidGhlbWVfY29sb3IiOiIjZjU5ZTBiIn0=">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0d1117;--card:#161b22;--border:#30363d;--text:#c9d1d9;--mute:#484f58;--accent:#f59e0b;--green:#10b981;--blue:#60a5fa;--red:#f87171;--purple:#a78bfa}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Hiragino Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+.container{max-width:800px;margin:0 auto;padding:12px}
+
+/* Header */
+.header{text-align:center;padding:20px 0 10px}
+.header h1{font-size:22px;font-weight:700;color:var(--accent);letter-spacing:1px}
+.header p{font-size:11px;color:var(--mute);margin-top:4px}
+
+/* Upload Area */
+.upload-area{border:2px dashed var(--border);border-radius:16px;padding:40px 20px;text-align:center;cursor:pointer;transition:all .3s;margin:16px 0}
+.upload-area:hover,.upload-area.dragover{border-color:var(--accent);background:rgba(245,158,11,.05)}
+.upload-area .icon{font-size:48px;margin-bottom:12px}
+.upload-area .label{font-size:16px;font-weight:600;color:var(--text)}
+.upload-area .sub{font-size:12px;color:var(--mute);margin-top:6px}
+input[type="file"]{display:none}
+
+/* Progress */
+.progress-section{display:none;margin:20px 0}
+.progress-bar-bg{background:var(--card);border-radius:8px;height:8px;overflow:hidden;margin:8px 0}
+.progress-bar-fill{background:linear-gradient(90deg,var(--accent),var(--green));height:100%;width:0;transition:width .3s;border-radius:8px}
+.progress-label{font-size:13px;color:var(--mute);text-align:center}
+.progress-detail{font-size:11px;color:var(--mute);text-align:center;margin-top:4px}
+
+/* Video Preview */
+.video-section{display:none;margin:16px 0}
+.video-section video{width:100%;border-radius:12px;background:#000}
+.video-section canvas{display:none}
+
+/* Arm selection */
+.arm-select{display:none;text-align:center;margin:16px 0}
+.arm-btn{padding:10px 24px;border:2px solid var(--border);background:var(--card);color:var(--text);border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;margin:0 6px;transition:all .2s}
+.arm-btn:hover,.arm-btn.active{border-color:var(--accent);color:var(--accent)}
+
+/* Results */
+.results{display:none}
+.score-ring{width:140px;height:140px;border-radius:50%;background:conic-gradient(var(--accent) calc(var(--pct)*3.6deg),var(--card) 0);display:flex;align-items:center;justify-content:center;margin:16px auto;position:relative}
+.score-ring::before{content:'';position:absolute;width:110px;height:110px;border-radius:50%;background:var(--bg)}
+.score-inner{position:relative;text-align:center}
+.score-value{font-size:36px;font-weight:800;color:var(--accent)}
+.score-grade{font-size:14px;color:var(--mute)}
+
+/* Phase cards */
+.phase-cards{display:flex;gap:8px;overflow-x:auto;padding:8px 0;-webkit-overflow-scrolling:touch}
+.phase-card{min-width:120px;flex-shrink:0;background:var(--card);border:2px solid var(--border);border-radius:12px;padding:8px;text-align:center;cursor:pointer;transition:all .2s}
+.phase-card.active{border-color:var(--accent);box-shadow:0 0 12px rgba(245,158,11,.2)}
+.phase-card img{width:100%;border-radius:8px;aspect-ratio:9/16;object-fit:cover}
+.phase-card .phase-name{font-size:10px;font-weight:600;margin-top:4px;white-space:nowrap}
+.phase-card .phase-time{font-size:9px;color:var(--mute)}
+
+/* Frame editor */
+.frame-editor{display:none;margin:12px 0;text-align:center}
+.frame-editor canvas{width:100%;max-width:480px;border-radius:10px;background:#000}
+.frame-nav{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:8px}
+.frame-nav button{background:var(--card);border:1px solid var(--border);color:var(--text);padding:8px 16px;border-radius:8px;font-size:13px;cursor:pointer}
+.frame-nav button:hover{border-color:var(--accent);color:var(--accent)}
+.frame-nav .frame-info{font-size:12px;color:var(--mute)}
+
+/* Metric cards */
+.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.metric-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px}
+.metric-name{font-size:11px;color:var(--mute);font-weight:600}
+.metric-value{font-size:20px;font-weight:700;margin:4px 0}
+.metric-unit{font-size:10px;color:var(--mute)}
+.metric-bar{height:4px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden}
+.metric-fill{height:100%;border-radius:2px;transition:width .4s}
+.metric-score{font-size:10px;color:var(--mute);margin-top:2px}
+
+/* Feedback */
+.section-title{font-size:15px;font-weight:700;margin:20px 0 8px;padding-left:4px}
+.fb-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin:8px 0}
+.fb-card.warning{border-left:3px solid var(--red)}
+.fb-card.info{border-left:3px solid var(--blue)}
+.fb-title{font-size:13px;font-weight:700}
+.fb-detail{font-size:12px;color:var(--mute);margin:4px 0}
+.fb-evidence{font-size:10px;color:var(--purple);font-style:italic}
+.fb-mechanism{font-size:10px;color:var(--mute);margin-top:4px;padding:4px 8px;background:rgba(255,255,255,.03);border-radius:4px}
+
+/* Exercise */
+.ex-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin:8px 0}
+.ex-name{font-size:13px;font-weight:700;color:var(--green)}
+.ex-name-en{font-size:10px;color:var(--mute)}
+.ex-detail{font-size:11px;color:var(--mute);margin:4px 0}
+.ex-spec{font-size:10px;color:var(--text)}
+
+/* Confirm button */
+.confirm-btn{display:block;width:100%;padding:14px;background:linear-gradient(135deg,var(--accent),#d97706);color:#000;font-size:15px;font-weight:700;border:none;border-radius:12px;cursor:pointer;margin:16px 0;text-align:center}
+.confirm-btn:hover{opacity:.9}
+.confirm-btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* Footer */
+.footer{text-align:center;padding:24px 0;font-size:10px;color:var(--mute)}
+
+/* Loading overlay */
+.loading-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(13,17,23,.9);display:none;align-items:center;justify-content:center;z-index:100;flex-direction:column}
+.loading-overlay.show{display:flex}
+.spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{margin-top:12px;font-size:13px;color:var(--mute)}
+
+@media(max-width:480px){
+  .metrics-grid{grid-template-columns:1fr}
+  .container{padding:8px}
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>Re'forma</h1>
+    <p>投球動作分析 — ブラウザ完結型</p>
+  </div>
+
+  <!-- Upload -->
+  <div class="upload-area" id="uploadArea">
+    <div class="icon">🎬</div>
+    <div class="label">投球動画をアップロード</div>
+    <div class="sub">タップして選択、またはドラッグ＆ドロップ<br>MP4 / MOV 対応</div>
+  </div>
+  <input type="file" id="fileInput" accept="video/*">
+
+  <!-- Video -->
+  <div class="video-section" id="videoSection">
+    <video id="videoEl" playsinline muted></video>
+    <canvas id="drawCanvas"></canvas>
+  </div>
+
+  <!-- Arm select -->
+  <div class="arm-select" id="armSelect">
+    <p style="font-size:13px;margin-bottom:10px;color:var(--mute)">投球腕を選択</p>
+    <button class="arm-btn" data-arm="right" onclick="selectArm('right')">右投げ</button>
+    <button class="arm-btn" data-arm="left" onclick="selectArm('left')">左投げ</button>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-section" id="progressSection">
+    <div class="progress-label" id="progressLabel">解析準備中...</div>
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+    <div class="progress-detail" id="progressDetail"></div>
+  </div>
+
+  <!-- Results -->
+  <div class="results" id="results">
+    <div class="section-title">📊 Re'formaスコア</div>
+    <div id="scoreStatus" style="font-size:11px;color:var(--mute);text-align:center;margin-bottom:4px">⚠ 自動検出スコア — フェーズを確定してください</div>
+    <div class="score-ring" id="scoreRing" style="--pct:0">
+      <div class="score-inner">
+        <div class="score-value" id="scoreValue">--</div>
+        <div class="score-grade" id="scoreGrade">-</div>
+      </div>
+    </div>
+
+    <!-- Phase cards -->
+    <div class="section-title">🎯 フェーズ検出</div>
+    <div class="phase-cards" id="phaseCards"></div>
+
+    <!-- Frame editor -->
+    <div class="frame-editor" id="frameEditor">
+      <canvas id="editorCanvas" width="480" height="270"></canvas>
+      <div class="frame-nav">
+        <button onclick="stepFrame(-10)">◀◀</button>
+        <button onclick="stepFrame(-1)">◀</button>
+        <span class="frame-info" id="frameInfo">- / -</span>
+        <button onclick="stepFrame(1)">▶</button>
+        <button onclick="stepFrame(10)">▶▶</button>
+      </div>
+    </div>
+
+    <button class="confirm-btn" id="confirmBtn" onclick="confirmAllPhases()">✅ 全フェーズを確定してスコアを算出</button>
+
+    <!-- Metrics -->
+    <div class="section-title">📏 計測指標</div>
+    <div class="metrics-grid" id="metricsGrid"></div>
+
+    <!-- Feedback -->
+    <div class="section-title">📋 フィードバック</div>
+    <div id="feedbackList"></div>
+
+    <!-- Exercises -->
+    <div class="section-title">💪 エクササイズ処方</div>
+    <div id="exerciseList"></div>
+  </div>
+
+  <div class="footer">
+    Re'forma Pitching Analysis v3.0<br>
+    MediaPipe Pose Landmarker (Browser)<br>
+    © Re'forma / TOM
+  </div>
+</div>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">MediaPipe モデル読み込み中...</div>
+</div>
+
+<!-- MediaPipe Tasks Vision -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/vision_bundle.mjs" type="module"></script>
+
+<script type="module">
+import {FilesetResolver, PoseLandmarker, DrawingUtils} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/vision_bundle.mjs";
+
+// ═══════════════════════════════════════════════════════════════
+// Constants
+// ═══════════════════════════════════════════════════════════════
+const PHASE_NAMES = ["①ワインドアップ","②前期コッキング","③後期コッキング","④アクセラレーション","⑤フォロースルー"];
+const PHASE_COLORS = ["#2ecc71","#3498db","#9b59b6","#e67e22","#e74c3c"];
+
+const ARM_IDX = {
+  right: {S:12,E:14,W:16,SK:25,SA:27,SH:23,AK:26,AA:28,AH:24},
+  left:  {S:11,E:13,W:15,SK:26,SA:28,SH:24,AK:25,AA:27,AH:23}
+};
+
+const NORMATIVE = {
+  "踏み出し膝屈曲": {pro:[30,50], amateur:[15,65], unit:"°", better:"range"},
+  "軸足膝屈曲": {pro:[40,65], amateur:[25,80], unit:"°", better:"range"},
+  "体幹傾き": {pro:[25,40], amateur:[15,55], unit:"°", better:"range"},
+  "ストライド長": {pro:[180,260], amateur:[120,320], unit:"%", better:"range"},
+  "並進運動速度": {pro:[8,15], amateur:[4,20], unit:"体幹長/s", better:"higher"},
+  "腕振り速度": {pro:[40,70], amateur:[20,90], unit:"体幹長/s", better:"higher"},
+  "腕振り効率": {pro:[4.0,7.0], amateur:[2.5,10.0], unit:"倍", better:"range"},
+};
+
+const WEIGHTS = {
+  "踏み出し膝屈曲":0.18, "軸足膝屈曲":0.12, "体幹傾き":0.15,
+  "ストライド長":0.15, "並進運動速度":0.15, "腕振り速度":0.15, "腕振り効率":0.10
+};
+
+const EXERCISE_DB = {
+  "股関節可動性_mobility":{name:"動的ハムストリングストレッチ",name_en:"Dynamic Hamstring Stretch",category:"モビリティ",sets:"2set×各側10-15回",purpose:"股関節の前後可動性を向上→より長いストライドが可能に"},
+  "下肢パワー_strength":{name:"ランジウォーク",name_en:"Walking Lunge",category:"筋力",sets:"3set×各脚10-12回",purpose:"股関節の動的可動性と安定性を向上→ストライド長の増加"},
+  "下肢パワー伝達_neuromuscular":{name:"シングルレッグデッドリフト",name_en:"Single-Leg Deadlift",category:"神経筋",sets:"3set×各脚8-10回",purpose:"片脚での安定性と股関節の伸展力を強化"},
+  "着地安定性_neuromuscular":{name:"シングルレッグスタンス",name_en:"Single-Leg Stance",category:"神経筋",sets:"3set×各脚30-60秒",purpose:"足部本体感覚向上→軸足での安定性改善"},
+  "体幹制御_stability":{name:"デッドバグ",name_en:"Dead Bug",category:"安定性",sets:"3set×各10-12回",purpose:"体幹の分節的制御→前後傾きのコントロール改善"},
+  "体幹安定化_stability":{name:"プランクバリエーション",name_en:"Plank Variations",category:"安定性",sets:"3set×30-60秒",purpose:"体幹前部と側部の等尺性強度を向上"},
+  "体幹伸展_mobility":{name:"キャットカウストレッチ",name_en:"Cat-Cow Stretch",category:"モビリティ",sets:"2set×10回",purpose:"脊椎の屈曲伸展可動域を改善"},
+  "地面反力活用_neuromuscular":{name:"垂直跳び",name_en:"Vertical Jump",category:"神経筋",sets:"3set×5-8回",purpose:"下肢が地面反力を吸収・活用する能力を強化"},
+  "膝屈曲力_strength":{name:"スプリットスクワット",name_en:"Split Squat",category:"筋力",sets:"3set×各脚8-10回",purpose:"前脚の膝屈曲力を強化→着地時の制動力向上"},
+  "着地制動_neuromuscular":{name:"ドロップランジ",name_en:"Drop Lunge",category:"神経筋",sets:"3set×各脚8回",purpose:"着地衝撃の吸収パターンを神経学習"},
+  "軸足膝屈曲_strength":{name:"ブルガリアンスクワット",name_en:"Bulgarian Split Squat",category:"筋力",sets:"3set×各脚8-10回",purpose:"軸足の片脚筋力を強化→下肢パワー発揮向上"},
+  "バランス訓練_neuromuscular":{name:"バランスボード訓練",name_en:"Balance Board",category:"神経筋",sets:"3set×30-60秒",purpose:"足関節微細筋の強化→軸安定性向上"},
+  "コアトレーニング_strength":{name:"パレットプレス",name_en:"Pallof Press",category:"筋力",sets:"3set×各側10-12回",purpose:"体幹の回転抵抗力を強化"},
+  "脊椎安定性_stability":{name:"バードドッグ",name_en:"Bird Dog",category:"安定性",sets:"3set×各側10-12回",purpose:"脊椎を中立位置に保ちながら四肢動作→分節的安定性向上"},
+  "骨盤分離_neuromuscular":{name:"ローテーショナルコアドリル",name_en:"Rotational Core Drill",category:"神経筋",sets:"3set×各方向10-12回",purpose:"骨盤→体幹の回転シーケンスを学習"},
+  "体幹回転力_strength":{name:"ランドマインローテーション",name_en:"Landmine Rotation",category:"筋力",sets:"3set×各側8-10回",purpose:"体幹の回転パワーを強化"},
+  "肩甲骨制御_neuromuscular":{name:"I-Y-T-W肩関節運動",name_en:"I-Y-T-W Shoulder Series",category:"神経筋",sets:"2-3set×各10-15回",purpose:"肩甲骨周囲と回旋筋腱板の動的安定性向上"},
+  "コッキング位置_neuromuscular":{name:"スローターバンドドリル",name_en:"Thrower's Band Drill",category:"神経筋",sets:"3set×15-20回",purpose:"90/90投球位置での肩腕配置を神経学習"},
+};
+
+// ═══════════════════════════════════════════════════════════════
+// State
+// ═══════════════════════════════════════════════════════════════
+let poseLandmarker = null;
+let allFrames = []; // {time, landmarks, worldLandmarks, angles, extra, imgData}
+let selectedArm = null;
+let phases = {};
+let selFrames = {}; // phase name -> frame index
+let activePhaseIdx = null;
+let editingFrameIdx = -1;
+let motionMetrics = {};
+let videoEl, drawCanvas, drawCtx;
+
+// ═══════════════════════════════════════════════════════════════
+// Math helpers
+// ═══════════════════════════════════════════════════════════════
+function vec3(lm, i) { return [lm[i].x, lm[i].y, lm[i].z]; }
+
+function calcAngle3D(a, b, c) {
+  const ba = [a[0]-b[0], a[1]-b[1], a[2]-b[2]];
+  const bc = [c[0]-b[0], c[1]-b[1], c[2]-b[2]];
+  const n1 = Math.sqrt(ba[0]**2+ba[1]**2+ba[2]**2);
+  const n2 = Math.sqrt(bc[0]**2+bc[1]**2+bc[2]**2);
+  if(n1<1e-8||n2<1e-8) return 0;
+  const dot = ba[0]*bc[0]+ba[1]*bc[1]+ba[2]*bc[2];
+  return Math.acos(Math.max(-1,Math.min(1,dot/(n1*n2))))*180/Math.PI;
+}
+
+function norm(arr) {
+  return Math.sqrt(arr.reduce((s,v)=>s+v*v,0));
+}
+
+// Savitzky-Golay simplified (moving average with polynomial fit approximation)
+function smooth(arr, win=11) {
+  if(arr.length<5) return arr.slice();
+  win = Math.max(3, Math.min(win, Math.floor(arr.length/4)*2+1));
+  if(win%2===0) win--;
+  const half = Math.floor(win/2);
+  const result = new Array(arr.length);
+  for(let i=0;i<arr.length;i++){
+    let sum=0, count=0;
+    for(let j=Math.max(0,i-half);j<=Math.min(arr.length-1,i+half);j++){
+      sum+=arr[j]; count++;
+    }
+    result[i] = sum/count;
+  }
+  return result;
+}
+
+function gradient(arr) {
+  const g = new Array(arr.length);
+  for(let i=0;i<arr.length;i++){
+    if(i===0) g[i]=arr[1]-arr[0];
+    else if(i===arr.length-1) g[i]=arr[i]-arr[i-1];
+    else g[i]=(arr[i+1]-arr[i-1])/2;
+  }
+  return g;
+}
+
+function argmax(arr, start=0, end=null) {
+  if(end===null) end=arr.length;
+  let mi=start, mv=arr[start];
+  for(let i=start+1;i<end;i++){
+    if(arr[i]>mv){mv=arr[i];mi=i;}
+  }
+  return mi;
+}
+
+function argmin(arr, start=0, end=null) {
+  if(end===null) end=arr.length;
+  let mi=start, mv=arr[start];
+  for(let i=start+1;i<end;i++){
+    if(arr[i]<mv){mv=arr[i];mi=i;}
+  }
+  return mi;
+}
+
+function median(arr) {
+  const s = arr.slice().sort((a,b)=>a-b);
+  const m = Math.floor(s.length/2);
+  return s.length%2?s[m]:(s[m-1]+s[m])/2;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Calc functions (port from Python)
+// ═══════════════════════════════════════════════════════════════
+function calcAngles(lm, arm) {
+  const idx = ARM_IDX[arm];
+  const a = {};
+  // Trunk tilt (3D)
+  const smx=(lm[11].x+lm[12].x)/2, smy=(lm[11].y+lm[12].y)/2, smz=(lm[11].z+lm[12].z)/2;
+  const hmx=(lm[23].x+lm[24].x)/2, hmy=(lm[23].y+lm[24].y)/2, hmz=(lm[23].z+lm[24].z)/2;
+  const tv=[smx-hmx, smy-hmy, smz-hmz];
+  const vert=[0,-1,0];
+  const tvn=norm(tv)+1e-8;
+  const cos_=(tv[0]*vert[0]+tv[1]*vert[1]+tv[2]*vert[2])/tvn;
+  a["体幹傾き"]=+(Math.acos(Math.max(-1,Math.min(1,cos_)))*180/Math.PI).toFixed(1);
+
+  // Lead knee flexion
+  const rawSk = calcAngle3D(vec3(lm,idx.SH),vec3(lm,idx.SK),vec3(lm,idx.SA));
+  a["踏み出し膝屈曲"]=+Math.max(0,180-rawSk).toFixed(1);
+
+  // Rear knee flexion
+  const rawAk = calcAngle3D(vec3(lm,idx.AH),vec3(lm,idx.AK),vec3(lm,idx.AA));
+  a["軸足膝屈曲"]=+Math.max(0,180-rawAk).toFixed(1);
+
+  return a;
+}
+
+function calcExtraMetrics(lm, arm) {
+  const idx = ARM_IDX[arm];
+  const m = {};
+
+  // Arm slot
+  const sx=lm[idx.S].x,sy=lm[idx.S].y,sz=lm[idx.S].z;
+  const ex=lm[idx.E].x,ey=lm[idx.E].y,ez=lm[idx.E].z;
+  const ve=[ex-sx,ey-sy,ez-sz];
+  const horiz=Math.sqrt(ve[0]**2+ve[2]**2);
+  m["アームスロット"]=+(Math.atan2(horiz,Math.max(Math.abs(ve[1]),1e-8))*180/Math.PI).toFixed(1);
+
+  // Stride length (3D)
+  const ra=[lm[27].x,lm[27].y,lm[27].z];
+  const la=[lm[28].x,lm[28].y,lm[28].z];
+  const sm=[(lm[11].x+lm[12].x)/2,(lm[11].y+lm[12].y)/2,(lm[11].z+lm[12].z)/2];
+  const hm=[(lm[23].x+lm[24].x)/2,(lm[23].y+lm[24].y)/2,(lm[23].z+lm[24].z)/2];
+  const stride3d=norm([ra[0]-la[0],ra[1]-la[1],ra[2]-la[2]]);
+  const trunk3d=norm([sm[0]-hm[0],sm[1]-hm[1],sm[2]-hm[2]])+1e-8;
+  m["ストライド長"]=+(stride3d/trunk3d*100).toFixed(1);
+
+  return m;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Phase detection (Hybrid Anchor)
+// ═══════════════════════════════════════════════════════════════
+function detect5Phases(frames, arm) {
+  const n = frames.length;
+  if(n<10){
+    const s=Math.max(1,Math.floor(n/5));
+    return {"①ワインドアップ":0,"②前期コッキング":Math.min(s,n-1),"③後期コッキング":Math.min(s*2,n-1),"④アクセラレーション":Math.min(s*3,n-1),"⑤フォロースルー":Math.min(s*4,n-1)};
+  }
+
+  const idx = ARM_IDX[arm];
+
+  // Extract signals
+  const lms = frames.map(f=>f.landmarks);
+  const sk_y = smooth(lms.map(l=>l[idx.SK].y));
+  const sa_y = smooth(lms.map(l=>l[idx.SA].y));
+  const sa_x = smooth(lms.map(l=>l[idx.SA].x));
+  const sh_y = smooth(lms.map(l=>l[idx.SH].y));
+  const sh_x = smooth(lms.map(l=>l[idx.SH].x));
+  const w_x = smooth(lms.map(l=>l[idx.W].x));
+  const w_y = smooth(lms.map(l=>l[idx.W].y));
+  const w_z = smooth(lms.map(l=>l[idx.W].z));
+  const s_x = smooth(lms.map(l=>l[idx.S].x));
+  const s_y = smooth(lms.map(l=>l[idx.S].y));
+  const s_z = smooth(lms.map(l=>l[idx.S].z));
+  const e_y = smooth(lms.map(l=>l[idx.E].y));
+
+  const w_vx = gradient(w_x);
+  const w_vy = gradient(w_y);
+  const w_spd = smooth(w_vx.map((vx,i)=>Math.sqrt(vx**2+w_vy[i]**2)));
+
+  // STEP A-1: Wind-up — knee lift maximum
+  const search80 = Math.min(Math.floor(n*0.70), n);
+  let wu = argmin(sk_y, 0, search80);
+  const kneeRange = Math.max(...sk_y.slice(0,search80))-Math.min(...sk_y.slice(0,search80));
+  if(kneeRange<0.03) wu=Math.floor(n*0.15);
+
+  // STEP A-2: Foot contact
+  const fcStart = wu + Math.max(2, Math.floor(n*0.03));
+  const fcEnd = Math.min(wu + Math.floor(n*0.45), n);
+  let fc = fcStart;
+  if(fcEnd > fcStart+3){
+    const fc_a = fcStart + argmax(sa_y, fcStart, fcEnd) - fcStart;
+    const saVelY = smooth(gradient(sa_y));
+    let fc_b = fc_a;
+    for(let fi=fcStart;fi<fcEnd-1;fi++){
+      if(saVelY[fi]>0.002 && saVelY[fi+1]<=0.002){fc_b=fi;break;}
+    }
+    const strideLeg = sa_x.map((sx,i)=>Math.sqrt((sx-sh_x[i])**2+(sa_y[i]-sh_y[i])**2));
+    const fc_c = fcStart + argmax(strideLeg, fcStart, fcEnd) - fcStart;
+
+    // Fix: correct median vote
+    const fcA = fcStart + argmax(sa_y.slice(fcStart,fcEnd));
+    fc = Math.round(median([fcA, fc_b, fc_c]));
+  }
+  fc = Math.max(fc, wu+Math.max(2,Math.floor(n*0.02)));
+  fc = Math.min(fc, n-4);
+
+  // STEP B: Acceleration — wrist speed peak in narrow window after FC
+  const maxPitchWindow = Math.min(Math.floor(n*0.40), Math.max(30, Math.floor(n*0.15)));
+  const acStart = fc+1;
+  const acEnd = Math.min(fc+maxPitchWindow, n);
+  let ac = acStart;
+  if(acEnd > acStart+1){
+    ac = argmax(w_spd, acStart, acEnd);
+  }
+  ac = Math.max(ac, fc+Math.max(2,Math.floor(n*0.02)));
+  ac = Math.min(ac, n-2);
+
+  // STEP C: MER (late cocking) — between FC and AC
+  const merStart=fc+1, merEnd=ac;
+  let lk = Math.floor((fc+ac)/2);
+  if(merEnd > merStart+2){
+    const wristLat = [];
+    const wristBack = [];
+    const elbowAtShoulder = [];
+    for(let i=merStart;i<merEnd;i++){
+      wristLat.push(arm==='right' ? w_x[i]-s_x[i] : s_x[i]-w_x[i]);
+      wristBack.push(-(w_z[i]-s_z[i]));
+      elbowAtShoulder.push(-Math.abs(e_y[i]-s_y[i]));
+    }
+    const norm01 = (arr)=>{
+      const mn=Math.min(...arr),mx=Math.max(...arr),r=mx-mn;
+      if(r<1e-8) return arr.map(()=>0.5);
+      return arr.map(v=>(v-mn)/r);
+    };
+    const wlN=norm01(wristLat), wbN=norm01(wristBack), esN=norm01(elbowAtShoulder);
+    const composite = wlN.map((v,i)=>v*0.40+wbN[i]*0.35+esN[i]*0.25);
+    lk = merStart + argmax(composite);
+  }
+  lk = Math.max(lk, fc+1);
+  lk = Math.min(lk, ac-1);
+
+  // STEP D: Follow-through
+  const peakSpeed = w_spd[ac]||w_spd[w_spd.length-1];
+  const threshold = peakSpeed * 0.35;
+  let fw = Math.min(ac+Math.max(3,Math.floor(n*0.04)), n-1);
+  for(let fi=ac+1;fi<n;fi++){
+    if(w_spd[fi]<threshold){fw=fi;break;}
+  }
+  fw = Math.max(fw, ac+Math.max(2,Math.floor(n*0.01)));
+  fw = Math.min(fw, n-1);
+
+  // Enforce order + min gap
+  const MIN_GAP = Math.max(3, Math.floor(n*0.02));
+  const ph = [wu, fc, lk, ac, fw];
+  for(let i=1;i<ph.length;i++){
+    if(ph[i]<=ph[i-1]+MIN_GAP-1) ph[i]=Math.min(ph[i-1]+MIN_GAP, n-1);
+  }
+  for(let i=0;i<ph.length;i++) ph[i]=Math.max(0,Math.min(n-1,ph[i]));
+
+  return {"①ワインドアップ":ph[0],"②前期コッキング":ph[1],"③後期コッキング":ph[2],"④アクセラレーション":ph[3],"⑤フォロースルー":ph[4]};
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Motion metrics
+// ═══════════════════════════════════════════════════════════════
+function calcTranslationSpeed(frames, arm, fps=30) {
+  if(frames.length<5) return 0;
+  const lms = frames.map(f=>f.landmarks);
+  const comX = lms.map(l=>((l[11].x+l[12].x)/2+(l[23].x+l[24].x)/2)/2);
+  const trunkLens = lms.map(l=>Math.abs((l[11].y+l[12].y)/2-(l[23].y+l[24].y)/2));
+  const trunkAvg = Math.max(trunkLens.reduce((a,b)=>a+b,0)/trunkLens.length, 0.05);
+  const comXs = smooth(comX);
+  const velX = gradient(comXs).map(v=>v*fps);
+  const velNorm = velX.map(v=>Math.abs(v)/trunkAvg);
+  return +Math.max(...velNorm).toFixed(1);
+}
+
+function calcArmSpeed(frames, arm, fps=30) {
+  if(frames.length<5) return 0;
+  const idx = ARM_IDX[arm];
+  const lms = frames.map(f=>f.landmarks);
+  const wX = smooth(lms.map(l=>l[idx.W].x));
+  const wY = smooth(lms.map(l=>l[idx.W].y));
+  const trunkLens = lms.map(l=>Math.abs((l[11].y+l[12].y)/2-(l[23].y+l[24].y)/2));
+  const trunkAvg = Math.max(trunkLens.reduce((a,b)=>a+b,0)/trunkLens.length, 0.05);
+  const vx = gradient(wX).map(v=>v*fps);
+  const vy = gradient(wY).map(v=>v*fps);
+  const spd = vx.map((v,i)=>Math.sqrt(v**2+vy[i]**2)/trunkAvg);
+  return +Math.max(...spd).toFixed(1);
+}
+
+function calcArmEfficiency(frames, arm, fps=30) {
+  const trans = calcTranslationSpeed(frames,arm,fps);
+  const armSpd = calcArmSpeed(frames,arm,fps);
+  if(trans<0.1) return 0;
+  return +(armSpd/trans).toFixed(1);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Scoring
+// ═══════════════════════════════════════════════════════════════
+function scoreByNormative(name, val) {
+  const n = NORMATIVE[name];
+  if(!n) return 50;
+  const [pLo,pHi]=n.pro, [aLo,aHi]=n.amateur;
+  if(val>=pLo && val<=pHi){
+    return 85+((val-pLo)/(pHi-pLo||1))*15;
+  } else if(val>=aLo && val<=aHi){
+    return 50+((val-aLo)/(aHi-aLo||1))*34;
+  } else {
+    const dP=Math.min(Math.abs(val-pLo),Math.abs(val-pHi));
+    const dA=Math.min(Math.abs(val-aLo),Math.abs(val-aHi));
+    const maxD=Math.max(pHi-aHi,aLo-pLo,20);
+    const ratio=Math.min(1,(dP<dA?dP:dA)/maxD);
+    return 49*(1-ratio);
+  }
+}
+
+function computeScore() {
+  const components = {};
+
+  // Phase-specific metrics
+  const phaseMetrics = [
+    ["踏み出し膝屈曲","④アクセラレーション","angles"],
+    ["軸足膝屈曲","②前期コッキング","angles"],
+    ["体幹傾き","④アクセラレーション","angles"],
+    ["ストライド長","②前期コッキング","extra"],
+  ];
+  for(const [name, phaseName, dataType] of phaseMetrics){
+    const fi = selFrames[phaseName];
+    if(fi===undefined) continue;
+    const f = allFrames[fi];
+    if(!f) continue;
+    const val = dataType==='angles' ? (f.angles[name]||0) : (f.extra[name]||0);
+    const score = Math.max(0,Math.min(100,scoreByNormative(name,val)));
+    components[name] = {score:+score.toFixed(1), raw:+val.toFixed(1), unit:NORMATIVE[name]?.unit||""};
+  }
+
+  // Motion metrics (whole sequence)
+  const fps = 30;
+  motionMetrics = {
+    "並進運動速度": calcTranslationSpeed(allFrames, selectedArm, fps),
+    "腕振り速度": calcArmSpeed(allFrames, selectedArm, fps),
+    "腕振り効率": calcArmEfficiency(allFrames, selectedArm, fps),
+  };
+  for(const [name, raw] of Object.entries(motionMetrics)){
+    const score = Math.max(0,Math.min(100,scoreByNormative(name,raw)));
+    components[name] = {score:+score.toFixed(1), raw:+raw.toFixed(1), unit:NORMATIVE[name]?.unit||""};
+  }
+
+  // Total
+  let total = 0;
+  for(const [name, w] of Object.entries(WEIGHTS)){
+    if(components[name]) total += components[name].score * w;
+  }
+  total = +total.toFixed(1);
+  let grade = 'D';
+  if(total>=85) grade='S'; else if(total>=75) grade='A'; else if(total>=65) grade='B'; else if(total>=55) grade='C';
+
+  return {total, grade, components};
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Feedback generation
+// ═══════════════════════════════════════════════════════════════
+function generateFeedback(scoreResult) {
+  const fb = [];
+  const c = scoreResult.components;
+
+  // Stride
+  const stride = c["ストライド長"]?.raw || 0;
+  if(stride<120) fb.push({severity:'warning',title:'ストライド長が短い',detail:`ストライド長が${stride}%とアマチュア下限以下。下肢エネルギー伝達が不足し、肩への代償負荷が増加します。`,evidence:'Werner et al. (2008)',mechanism:'短いストライド → エネルギー伝達短縮 → 肩負荷増加',exercises:['股関節可動性_mobility','下肢パワー_strength']});
+  else if(stride<180) fb.push({severity:'info',title:'ストライド長に伸びしろあり',detail:`ストライド長が${stride}%。プロ水準（180-260%）未満。股関節可動性と下肢パワーの改善で投球効率が向上します。`,evidence:'Werner et al. (2008)',exercises:['股関節可動性_mobility','下肢パワー_strength','下肢パワー伝達_neuromuscular']});
+  else if(stride>320) fb.push({severity:'warning',title:'ストライド長が長すぎる',detail:`ストライド長が${stride}%と過度。着地不安定性と体幹制御困難に。`,evidence:'Werner et al. (2008)',exercises:['着地安定性_neuromuscular','体幹制御_stability']});
+
+  // Lead knee
+  const lk = c["踏み出し膝屈曲"]?.raw || 0;
+  if(lk<15) fb.push({severity:'warning',title:'踏み出し膝が伸び過ぎ',detail:`踏み出し膝の屈曲が${lk}°と著しく不足。着地衝撃が直接腰椎・肩に伝達されます。`,evidence:'Werner et al. (2002)',exercises:['膝屈曲力_strength','着地制動_neuromuscular']});
+  else if(lk<30) fb.push({severity:'info',title:'踏み出し膝屈曲に伸びしろあり',detail:`踏み出し膝の屈曲が${lk}°。プロ水準（30-50°）未満で衝撃吸収に改善余地あり。`,evidence:'Werner et al. (2002)',exercises:['膝屈曲力_strength','着地安定性_neuromuscular']});
+  else if(lk>65) fb.push({severity:'info',title:'踏み出し膝屈曲が過度',detail:`踏み出し膝の屈曲が${lk}°と大きすぎ。制動力不足の可能性。`,evidence:'Werner et al. (2002)',exercises:['着地安定性_neuromuscular','下肢パワー伝達_neuromuscular']});
+
+  // Rear knee
+  const rk = c["軸足膝屈曲"]?.raw || 0;
+  if(rk<25) fb.push({severity:'warning',title:'軸足膝が伸び過ぎ',detail:`軸足膝屈曲が${rk}°と著しく不足。腕依存の投球に。`,evidence:'Fleisig et al. (1995)',exercises:['軸足膝屈曲_strength','下肢パワー伝達_neuromuscular']});
+  else if(rk<40) fb.push({severity:'info',title:'軸足膝屈曲に伸びしろあり',detail:`軸足膝屈曲が${rk}°。プロ水準（40-65°）未満。`,evidence:'Fleisig et al. (1995)',exercises:['軸足膝屈曲_strength','下肢パワー_strength']});
+  else if(rk>80) fb.push({severity:'info',title:'軸足膝屈曲が過度',detail:`軸足膝屈曲が${rk}°と大きすぎ。安定性低下の可能性。`,evidence:'Fleisig et al. (1995)',exercises:['着地安定性_neuromuscular','バランス訓練_neuromuscular']});
+
+  // Trunk tilt
+  const tt = c["体幹傾き"]?.raw || 0;
+  if(tt<15) fb.push({severity:'info',title:'体幹傾きが小さい',detail:`体幹傾きが${tt}°。地面反力の活用が限定的です。`,evidence:'Stodden et al. (2001)',exercises:['体幹伸展_mobility','地面反力活用_neuromuscular']});
+  else if(tt<25) fb.push({severity:'info',title:'体幹傾きにやや伸びしろあり',detail:`体幹傾きが${tt}°。プロ水準（25-40°）未満。`,evidence:'Stodden et al. (2001)',exercises:['体幹伸展_mobility','コアトレーニング_strength']});
+  else if(tt>55) fb.push({severity:'warning',title:'体幹傾きが過度',detail:`体幹傾きが${tt}°と過度。腰椎負荷が増加。`,evidence:'Stodden et al. (2001)',exercises:['体幹安定化_stability','バランス訓練_neuromuscular']});
+
+  // Translation speed
+  const ts = c["並進運動速度"]?.raw || 0;
+  if(ts<4) fb.push({severity:'warning',title:'並進運動速度が低い',detail:`並進運動速度が${ts}体幹長/sと低水準。下肢推進力不足で腕依存の投球に。`,evidence:'Stodden et al. (2001)',exercises:['下肢パワー_strength','地面反力活用_neuromuscular']});
+  else if(ts<8) fb.push({severity:'info',title:'並進運動速度に伸びしろあり',detail:`並進運動速度が${ts}体幹長/s。プロ水準（8-15）未満。下肢パワー改善で球速向上が見込めます。`,evidence:'Stodden et al. (2001)',exercises:['下肢パワー_strength','下肢パワー伝達_neuromuscular','股関節可動性_mobility']});
+
+  // Arm speed
+  const as = c["腕振り速度"]?.raw || 0;
+  if(as<20) fb.push({severity:'warning',title:'腕振り速度が低い',detail:`腕振り速度が${as}体幹長/sと低水準。ボール速度に直接影響。`,evidence:'Fleisig et al. (1999)',exercises:['肩甲骨制御_neuromuscular','コッキング位置_neuromuscular']});
+  else if(as<40) fb.push({severity:'info',title:'腕振り速度に伸びしろあり',detail:`腕振り速度が${as}体幹長/s。プロ水準（40-70）未満。`,evidence:'Fleisig et al. (1999)',exercises:['骨盤分離_neuromuscular','体幹回転力_strength','肩甲骨制御_neuromuscular']});
+
+  // Arm efficiency
+  const ae = c["腕振り効率"]?.raw || 0;
+  if(ae>0.1){
+    if(ae>10) fb.push({severity:'warning',title:'腕振り効率が高すぎる（腕依存傾向）',detail:`腕振り効率が${ae}倍と高く、腕だけで投げている可能性。`,evidence:'運動連鎖効率指標',exercises:['下肢パワー_strength','骨盤分離_neuromuscular','地面反力活用_neuromuscular']});
+    else if(ae<2.5) fb.push({severity:'info',title:'腕振り効率が低い',detail:`腕振り効率が${ae}倍と低め。`,evidence:'運動連鎖効率指標',exercises:['骨盤分離_neuromuscular','体幹回転力_strength']});
+    else if(ae<4.0) fb.push({severity:'info',title:'腕振り効率に伸びしろあり',detail:`腕振り効率が${ae}倍。プロ水準（4.0-7.0倍）未満。`,evidence:'運動連鎖効率指標',exercises:['骨盤分離_neuromuscular','体幹回転力_strength','肩甲骨制御_neuromuscular']});
+  }
+
+  return fb;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UI Rendering
+// ═══════════════════════════════════════════════════════════════
+function renderResults(scoreResult) {
+  const {total, grade, components} = scoreResult;
+
+  // Score ring
+  document.getElementById('scoreValue').textContent = total;
+  document.getElementById('scoreGrade').textContent = grade;
+  document.getElementById('scoreRing').style.setProperty('--pct', Math.min(total,100));
+
+  // Phase cards
+  const pcEl = document.getElementById('phaseCards');
+  pcEl.innerHTML = '';
+  PHASE_NAMES.forEach((name,i)=>{
+    const fi = selFrames[name];
+    const f = allFrames[fi];
+    if(!f) return;
+    const card = document.createElement('div');
+    card.className = 'phase-card';
+    card.style.borderColor = PHASE_COLORS[i]+'66';
+    card.onclick = ()=>startPhaseEdit(i);
+    card.innerHTML = `
+      <img src="${f.imgData}" alt="${name}">
+      <div class="phase-name" style="color:${PHASE_COLORS[i]}">${name}</div>
+      <div class="phase-time">${f.time.toFixed(2)}s / F${fi}</div>
+    `;
+    pcEl.appendChild(card);
+  });
+
+  // Metrics grid
+  const mg = document.getElementById('metricsGrid');
+  mg.innerHTML = '';
+  for(const [name, data] of Object.entries(components)){
+    const color = data.score>=85?'var(--green)':data.score>=50?'var(--accent)':'var(--red)';
+    mg.innerHTML += `
+      <div class="metric-card">
+        <div class="metric-name">${name}</div>
+        <div class="metric-value" style="color:${color}">${data.raw}<span class="metric-unit">${data.unit}</span></div>
+        <div class="metric-bar"><div class="metric-fill" style="width:${Math.min(data.score,100)}%;background:${color}"></div></div>
+        <div class="metric-score">${data.score.toFixed(1)}/100</div>
+      </div>
+    `;
+  }
+
+  // Feedback
+  const fbList = document.getElementById('feedbackList');
+  const feedback = generateFeedback(scoreResult);
+  if(feedback.length===0){
+    fbList.innerHTML = '<div style="font-size:12px;color:var(--green);text-align:center;padding:16px">✅ 大きな問題は検出されませんでした</div>';
+  } else {
+    fbList.innerHTML = feedback.map(fb=>`
+      <div class="fb-card ${fb.severity}">
+        <div class="fb-title">${fb.severity==='warning'?'⚠️':'ℹ️'} ${fb.title}</div>
+        <div class="fb-detail">${fb.detail}</div>
+        <div class="fb-evidence">${fb.evidence||''}</div>
+        ${fb.mechanism?`<div class="fb-mechanism">${fb.mechanism}</div>`:''}
+      </div>
+    `).join('');
+  }
+
+  // Exercises
+  const exSet = new Set();
+  feedback.forEach(fb=>(fb.exercises||[]).forEach(e=>exSet.add(e)));
+  const exList = document.getElementById('exerciseList');
+  if(exSet.size===0){
+    exList.innerHTML = '<div style="font-size:12px;color:var(--mute);text-align:center;padding:16px">フィードバックに基づくエクササイズはありません</div>';
+  } else {
+    exList.innerHTML = [...exSet].map(key=>{
+      const ex = EXERCISE_DB[key];
+      if(!ex) return '';
+      return `
+        <div class="ex-card">
+          <div class="ex-name">${ex.name}</div>
+          <div class="ex-name-en">${ex.name_en} — ${ex.category}</div>
+          <div class="ex-detail">${ex.purpose}</div>
+          <div class="ex-spec">📋 ${ex.sets}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  document.getElementById('results').style.display = 'block';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Phase editing
+// ═══════════════════════════════════════════════════════════════
+function startPhaseEdit(phaseIdx) {
+  activePhaseIdx = phaseIdx;
+  editingFrameIdx = selFrames[PHASE_NAMES[phaseIdx]];
+  document.getElementById('frameEditor').style.display = 'block';
+  drawEditorFrame();
+
+  // Highlight active card
+  document.querySelectorAll('.phase-card').forEach((c,i)=>{
+    c.classList.toggle('active', i===phaseIdx);
+  });
+}
+
+function drawEditorFrame() {
+  const f = allFrames[editingFrameIdx];
+  if(!f) return;
+  const canvas = document.getElementById('editorCanvas');
+  const ctx = canvas.getContext('2d');
+  const img = new Image();
+  img.onload = ()=>{
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.drawImage(img, 0, 0);
+  };
+  img.src = f.imgData;
+  document.getElementById('frameInfo').textContent = `F${editingFrameIdx} / ${allFrames.length-1}  (${f.time.toFixed(2)}s)`;
+}
+
+function stepFrame(delta) {
+  if(activePhaseIdx===null) return;
+  editingFrameIdx = Math.max(0, Math.min(allFrames.length-1, editingFrameIdx+delta));
+  selFrames[PHASE_NAMES[activePhaseIdx]] = editingFrameIdx;
+  drawEditorFrame();
+
+  // Update card image/time
+  const cards = document.querySelectorAll('.phase-card');
+  if(cards[activePhaseIdx]){
+    const f = allFrames[editingFrameIdx];
+    cards[activePhaseIdx].querySelector('img').src = f.imgData;
+    cards[activePhaseIdx].querySelector('.phase-time').textContent = `${f.time.toFixed(2)}s / F${editingFrameIdx}`;
+  }
+}
+
+// Arrow key support
+document.addEventListener('keydown', (e)=>{
+  if(activePhaseIdx===null) return;
+  if(e.key==='ArrowLeft') { stepFrame(-1); e.preventDefault(); }
+  else if(e.key==='ArrowRight') { stepFrame(1); e.preventDefault(); }
+});
+
+function confirmAllPhases() {
+  if(activePhaseIdx!==null){
+    selFrames[PHASE_NAMES[activePhaseIdx]] = editingFrameIdx;
+    activePhaseIdx = null;
+    editingFrameIdx = -1;
+  }
+  document.getElementById('frameEditor').style.display = 'none';
+  document.querySelectorAll('.phase-card').forEach(c=>c.classList.remove('active'));
+
+  const scoreResult = computeScore();
+  renderResults(scoreResult);
+  document.getElementById('scoreStatus').innerHTML = '✅ <span style="color:var(--green);font-weight:bold">フェーズ確定済み</span> — 手動選択フレームに基づくスコア';
+  document.getElementById('confirmBtn').textContent = '🔄 フェーズを再選択してスコアを更新';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Main processing pipeline
+// ═══════════════════════════════════════════════════════════════
+async function initMediaPipe() {
+  showLoading('AIモデル読み込み中…（初回は30秒ほどかかります）');
+
+  let vision;
+  for(let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      vision = await FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm"
+      );
+      break;
+    } catch(e) {
+      console.warn(`WASM load attempt ${attempt} failed:`, e);
+      if(attempt === 3) throw new Error('WASMの読み込みに失敗しました。通信環境を確認してください。');
+      await new Promise(r => setTimeout(r, 1000 * attempt));
+    }
+  }
+
+  // モデルURL（lite → full のフォールバック）
+  const models = [
+    "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task",
+    "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/latest/pose_landmarker_full.task"
+  ];
+
+  for(const modelUrl of models) {
+    const modelName = modelUrl.includes('lite') ? 'lite' : 'full';
+    for(const delegate of ["GPU", "CPU"]) {
+      try {
+        showLoading(`AIモデル読み込み中…（${modelName}/${delegate}）`);
+        console.log(`Trying: ${modelName} model, ${delegate} delegate`);
+        poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
+          baseOptions: { modelAssetPath: modelUrl, delegate },
+          runningMode: "VIDEO",
+          numPoses: 1
+        });
+        console.log(`MediaPipe OK: ${modelName} model, ${delegate} delegate`);
+        hideLoading();
+        return;
+      } catch(e) {
+        console.warn(`${modelName}/${delegate} failed:`, e.message);
+      }
+    }
+  }
+  throw new Error('全モデルの読み込みに失敗しました。Wi-Fi接続を確認し、ページを再読み込みしてください。');
+}
+
+let pendingFile = null;
+let pendingURL = null;
+
+async function processVideo() {
+  if(!pendingURL || !selectedArm) {
+    console.error('processVideo: missing pendingURL or selectedArm', {pendingURL:!!pendingURL, selectedArm});
+    return;
+  }
+
+  const progLabel = document.getElementById('progressLabel');
+  const progFill  = document.getElementById('progressFill');
+  const progDetail = document.getElementById('progressDetail');
+
+  try {
+    videoEl = document.getElementById('videoEl');
+    drawCanvas = document.getElementById('drawCanvas');
+    drawCtx = drawCanvas.getContext('2d');
+
+    document.getElementById('armSelect').style.display = 'none';
+    document.getElementById('progressSection').style.display = 'block';
+    progLabel.textContent = '動画を準備中...';
+    progFill.style.width = '3%';
+
+    // --- メタデータ待ち ---
+    if(videoEl.readyState < 1) {
+      progLabel.textContent = '動画メタデータ読み込み中...';
+      await new Promise((resolve) => {
+        const t = setTimeout(resolve, 10000);
+        videoEl.addEventListener('loadedmetadata', ()=>{ clearTimeout(t); resolve(); }, {once:true});
+        // 念のため load() を呼ぶ
+        videoEl.load();
+      });
+    }
+
+    const duration = videoEl.duration;
+    if(!duration || !isFinite(duration) || duration <= 0) {
+      progLabel.textContent = '❌ 動画を読み込めませんでした。別の動画をお試しください。';
+      return;
+    }
+
+    const vw = videoEl.videoWidth || 640;
+    const vh = videoEl.videoHeight || 360;
+    const scale = vw > 640 ? 640 / vw : 1;
+    drawCanvas.width  = Math.round(vw * scale);
+    drawCanvas.height = Math.round(vh * scale);
+
+    progLabel.textContent = '再生準備中...';
+    progFill.style.width = '5%';
+
+    // --- 再生ベースでフレーム取得（seekを使わない） ---
+    // モバイルSafariではseekが信頼できないため、実際に再生してキャプチャする
+    videoEl.muted = true;
+    videoEl.playsInline = true;
+    videoEl.currentTime = 0;
+    videoEl.playbackRate = 1.0; // 通常速度
+
+    allFrames = [];
+    let tsCounter = 0;
+    let lastCaptureTime = -1;
+    const captureInterval = 1.0 / 10; // 10fps でキャプチャ（モバイル負荷軽減）
+
+    progLabel.textContent = '解析中...（動画を再生しています）';
+    progFill.style.width = '10%';
+
+    // play() はユーザージェスチャー内で呼ぶ
+    await videoEl.play();
+
+    // 再生しながらフレームをキャプチャ
+    await new Promise((resolve, reject) => {
+      let animId;
+      const onFrame = () => {
+        try {
+          const ct = videoEl.currentTime;
+
+          // 終了チェック
+          if(videoEl.ended || videoEl.paused || ct >= duration - 0.05) {
+            cancelAnimationFrame(animId);
+            resolve();
+            return;
+          }
+
+          // captureInterval 間隔でキャプチャ
+          if(ct - lastCaptureTime >= captureInterval) {
+            lastCaptureTime = ct;
+
+            // canvas に描画
+            drawCtx.drawImage(videoEl, 0, 0, drawCanvas.width, drawCanvas.height);
+
+            // MediaPipe 推定
+            tsCounter += 100;
+            let result;
+            try {
+              result = poseLandmarker.detectForVideo(drawCanvas, tsCounter);
+            } catch(e) {
+              // skip
+            }
+
+            if(result && result.landmarks && result.landmarks.length > 0) {
+              const lm = result.landmarks[0];
+              const wlm = result.worldLandmarks?.[0] || lm;
+
+              try {
+                const du = new DrawingUtils(drawCtx);
+                du.drawLandmarks(lm, {radius: 2, color: '#00e6e6'});
+                du.drawConnectors(lm, PoseLandmarker.POSE_CONNECTIONS, {color: '#ff8c00', lineWidth: 1});
+              } catch(e) {}
+
+              const imgData = drawCanvas.toDataURL('image/jpeg', 0.4);
+              const angles = calcAngles(lm, selectedArm);
+              const extra = calcExtraMetrics(lm, selectedArm);
+
+              allFrames.push({time: ct, landmarks: lm, worldLandmarks: wlm, angles, extra, imgData});
+            }
+
+            // UI 更新
+            const pct = Math.min(95, Math.round(10 + (ct / duration) * 85));
+            progFill.style.width = pct + '%';
+            progLabel.textContent = `解析中... ${pct}%`;
+            progDetail.textContent = `${allFrames.length} フレーム検出 / ${ct.toFixed(1)}s`;
+          }
+
+          animId = requestAnimationFrame(onFrame);
+        } catch(err) {
+          cancelAnimationFrame(animId);
+          reject(err);
+        }
+      };
+      animId = requestAnimationFrame(onFrame);
+
+      // 安全タイマー：動画時間の3倍以上かかったら強制終了
+      setTimeout(() => {
+        cancelAnimationFrame(animId);
+        resolve();
+      }, Math.max(duration * 3000, 30000));
+    });
+
+    videoEl.pause();
+
+    if(allFrames.length < 5) {
+      progLabel.textContent = `❌ 姿勢を十分に検出できませんでした（${allFrames.length}フレーム）。\n全身が映る明るい場所の動画をお試しください。`;
+      progFill.style.width = '0%';
+      return;
+    }
+
+    progLabel.textContent = 'フェーズ検出中...';
+    progFill.style.width = '98%';
+    await new Promise(r => setTimeout(r, 50));
+
+    phases = detect5Phases(allFrames, selectedArm);
+    selFrames = {...phases};
+    const scoreResult = computeScore();
+
+    document.getElementById('progressSection').style.display = 'none';
+    document.getElementById('videoSection').style.display = 'none';
+
+    renderResults(scoreResult);
+
+  } catch(err) {
+    console.error('processVideo error:', err);
+    progLabel.textContent = `❌ エラー: ${err.message}`;
+    progFill.style.width = '0%';
+  }
+}
+
+function selectArm(arm) {
+  selectedArm = arm;
+  document.querySelectorAll('.arm-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.arm===arm);
+  });
+  // 腕選択後すぐに解析開始（ユーザージェスチャーの中で実行）
+  processVideo();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// File handling
+// ═══════════════════════════════════════════════════════════════
+const uploadArea = document.getElementById('uploadArea');
+const fileInput = document.getElementById('fileInput');
+
+uploadArea.addEventListener('click', ()=>fileInput.click());
+uploadArea.addEventListener('dragover', (e)=>{e.preventDefault();uploadArea.classList.add('dragover');});
+uploadArea.addEventListener('dragleave', ()=>uploadArea.classList.remove('dragover'));
+uploadArea.addEventListener('drop', (e)=>{
+  e.preventDefault();
+  uploadArea.classList.remove('dragover');
+  if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', (e)=>{
+  if(e.target.files.length) handleFile(e.target.files[0]);
+});
+
+async function handleFile(file) {
+  if(!poseLandmarker) await initMediaPipe();
+  pendingFile = file;
+  if(pendingURL) URL.revokeObjectURL(pendingURL);
+  pendingURL = URL.createObjectURL(file);
+  // 動画プレビューを表示
+  const vid = document.getElementById('videoEl');
+  vid.muted = true;
+  vid.playsInline = true;
+  vid.preload = 'auto';
+  vid.src = pendingURL;
+  document.getElementById('uploadArea').style.display = 'none';
+  document.getElementById('videoSection').style.display = 'block';
+  document.getElementById('armSelect').style.display = 'flex';
+}
+
+function showLoading(text) {
+  document.getElementById('loadingText').textContent = text;
+  document.getElementById('loadingOverlay').classList.add('show');
+}
+function hideLoading() {
+  document.getElementById('loadingOverlay').classList.remove('show');
+}
+
+// Init on load
+initMediaPipe().catch(e=>{
+  console.error('MediaPipe init error:', e);
+  hideLoading();
+  const ua = document.getElementById('uploadArea');
+  if(ua) {
+    ua.innerHTML = `<div style="color:#ff6b6b;padding:20px;text-align:center;">
+      <div style="font-size:24px;margin-bottom:10px;">⚠️</div>
+      <div style="font-weight:bold;margin-bottom:8px;">AIモデルの読み込みに失敗しました</div>
+      <div style="font-size:13px;color:#aaa;">
+        ${e.message || 'ネットワークエラー'}<br><br>
+        ・Wi-Fi接続を確認してください<br>
+        ・ページを再読み込みしてください<br>
+        ・Safari / Chrome 推奨
+      </div>
+      <button onclick="location.reload()" style="margin-top:15px;padding:8px 20px;background:#ff8c00;color:#fff;border:none;border-radius:8px;font-size:14px;">再読み込み</button>
+    </div>`;
+  }
+});
+
+</script>
+</body>
+</html>
